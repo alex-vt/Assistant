@@ -1,6 +1,8 @@
 # Assistant
 
-A quick access popup window for advanced text operations, powered by OpenAI.
+A quick access popup window for advanced text operations, powered by online OpenAI language models. 
+
+Opening the assistant on shortcut button press helps to edit text in any context with minimal distraction.
 
 Put text in the main text form from:
 * typing
@@ -12,9 +14,10 @@ and get for it: answer, summary, etc. Or search in browser.
 
 Usage:
 * App stays in background in tray
-* Meta+Space: open/close assistant window
-* F1..F7 or action button: perform action on text and put the result below
-* Ctrl+PrintScreen, or screen capture button: select screen area to capture text from
+* `Meta`+`Space`: open/close assistant window
+* `F1`..`F7` or action button: perform action on text and put the result below
+* `Ctrl`+`Enter`: perform selected action on text and put the result below
+* `Ctrl`+`PrintScreen`, or screen capture button: select screen area to capture text from
 
 Window height adjusts to short texts.
 
