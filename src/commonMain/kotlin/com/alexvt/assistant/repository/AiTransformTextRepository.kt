@@ -12,14 +12,58 @@ import kotlinx.serialization.json.Json
 
 class AiTransformTextRepository(private val credentialsRepository: CredentialsRepository) {
 
+    private data class LanguageModel(
+        val name: String,
+        val maxTotalTokens: Int,
+        val maxResponseTokens: Int,
+        val usdPerToken: Double,
+        val timeoutMillis: Long,
+    )
+
+    private val curieModel = LanguageModel(
+        name = "text-curie-001",
+        maxTotalTokens = 2048,
+        maxResponseTokens = 256,
+        usdPerToken = 0.000002,
+        timeoutMillis = 20_000,
+    )
+
+    private val daVinciModel = LanguageModel(
+        name = "text-davinci-003",
+        maxTotalTokens = 4096,
+        maxResponseTokens = 512,
+        usdPerToken = 0.00002,
+        timeoutMillis = 60_000,
+    )
+
+    private fun getModelForComplexity(isReducedComplexity: Boolean) =
+        if (isReducedComplexity) curieModel else daVinciModel
+
+    /**
+     * A compute unit for OpenAI API is a token.
+     * A conservative estimate is 1 token for 1 character.
+     * todo use tokenizer for estimation
+     */
+    fun getComputeUnitsEstimate(text: String, isReducedComplexity: Boolean): Int =
+        text.length + getModelForComplexity(isReducedComplexity).maxResponseTokens
+
+    fun getComputeUnitsLimitPerRequest(isReducedComplexity: Boolean): Int =
+        getModelForComplexity(isReducedComplexity).run { maxTotalTokens - maxResponseTokens }
+
+    fun getComputeUnitCost(isReducedComplexity: Boolean): Double =
+        getModelForComplexity(isReducedComplexity).usdPerToken
+
+    data class Response(val text: String, val computeUnits: Int, val isReducedComplexity: Boolean)
+
     suspend fun getTransformed(
         text: String,
-        normalizedRandomness: Double = 0.35,
-        isReducedComplexity: Boolean = false
-    ): String {
-        return HttpClient(CIO) {
+        isReducedComplexity: Boolean,
+        normalizedRandomness: Double = 0.35
+    ): Response {
+        val model = getModelForComplexity(isReducedComplexity)
+        val apiResponse = HttpClient(CIO) {
             install(HttpTimeout) {
-                requestTimeoutMillis = 60_000
+                requestTimeoutMillis = model.timeoutMillis
             }
             install(ContentNegotiation) {
                 json(Json {
@@ -40,13 +84,18 @@ class AiTransformTextRepository(private val credentialsRepository: CredentialsRe
             }
             setBody(
                 OpenAiCompletionRequestV1(
-                    model = if (isReducedComplexity) "text-curie-001" else "text-davinci-003",
+                    model = model.name,
                     text,
-                    max_tokens = 512,
+                    max_tokens = model.maxResponseTokens,
                     temperature = normalizedRandomness.denormalizedToTemperature(maxValue = 2.0)
                 )
             )
-        }.body<OpenAiCompletionResponseV1>().choices.joinToString { it.text }
+        }.body<OpenAiCompletionResponseV1>()
+        return Response(
+            text = apiResponse.choices.joinToString { it.text },
+            computeUnits = apiResponse.usage.total_tokens,
+            isReducedComplexity
+        )
     }
 
     private fun Double.denormalizedToTemperature(maxValue: Double) =
@@ -82,9 +131,4 @@ class AiTransformTextRepository(private val credentialsRepository: CredentialsRe
         val model: String, val prompt: String, val max_tokens: Int, val temperature: Double
     )
 
-    private companion object {
-        private const val TOKEN_LIMIT_4096 = 4096
-        private const val USD_PER_TOKEN_DAVINCI = 0.00002
-        private const val USD_PER_TOKEN_CURIE = 0.000002
-    }
 }

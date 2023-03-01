@@ -36,6 +36,7 @@ class AssistantViewModel constructor(
         val actionButtonSelectedIndex: Int,
         val isBusyGettingResponse: Boolean,
         val text: String,
+        val estimateText: String,
         val isPreviewingScreenshot: Boolean,
         val isPickingScreenshot: Boolean,
         val screenshotStartX: Int,
@@ -76,6 +77,17 @@ class AssistantViewModel constructor(
             uiStateFlow.value = uiStateFlow.value.copy(
                 text = newText
             )
+        }
+        backgroundCoroutineScope.launch {
+            val estimate = aiTransformTextUseCase.execute(
+                text = newText,
+                isDryRun = true,
+            )
+            mainThreadCoroutineScope.launch {
+                uiStateFlow.value = uiStateFlow.value.copy(
+                    estimateText = estimate.estimatedCost.text
+                )
+            }
         }
     }
 
@@ -179,8 +191,9 @@ class AssistantViewModel constructor(
                     val textBeforeAction = uiStateFlow.value.text
                     val textAfterAction = textBeforeAction.extendedWith(
                         appendedText = aiTransformTextUseCase.execute(
-                            textBeforeAction + selectedAction.textAction.postfixInstruction
-                        ),
+                            text = textBeforeAction + selectedAction.textAction.postfixInstruction,
+                            isDryRun = false,
+                        ).resultText,
                         isAppendedTextSeparated = selectedAction.textAction.isResultSeparated
                     )
                     mainThreadCoroutineScope.launch {
@@ -273,6 +286,7 @@ class AssistantViewModel constructor(
             actionButtonSelectedIndex = defaultSelectedActionIndex,
             isBusyGettingResponse = false,
             text = "",
+            estimateText = "",
             isPreviewingScreenshot = false,
             isPickingScreenshot = false,
             screenshotStartX = 0,
