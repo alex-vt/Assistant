@@ -44,11 +44,17 @@ class AiTransformTextRepository(private val credentialsRepository: CredentialsRe
      * A conservative estimate is 1 token for 1 character.
      * todo use tokenizer for estimation
      */
-    fun getComputeUnitsEstimate(text: String, isReducedComplexity: Boolean): Int =
-        text.length + getModelForComplexity(isReducedComplexity).maxResponseTokens
+    fun getComputeUnitsTotalEstimate(inputText: String, isReducedComplexity: Boolean): Int =
+        inputText.length + getModelForComplexity(isReducedComplexity).maxResponseTokens
 
-    fun getComputeUnitsLimitPerRequest(isReducedComplexity: Boolean): Int =
-        getModelForComplexity(isReducedComplexity).run { maxTotalTokens - maxResponseTokens }
+    fun getTextSizeForComputeUnits(computeUnits: Int): Int =
+        computeUnits // same conservative estimate
+
+    fun getComputeUnitsTotalLimit(isReducedComplexity: Boolean): Int =
+        getModelForComplexity(isReducedComplexity).maxTotalTokens
+
+    fun getComputeUnitsResponseLimit(isReducedComplexity: Boolean): Int =
+        getModelForComplexity(isReducedComplexity).maxResponseTokens
 
     fun getComputeUnitCost(isReducedComplexity: Boolean): Double =
         getModelForComplexity(isReducedComplexity).usdPerToken
@@ -56,7 +62,7 @@ class AiTransformTextRepository(private val credentialsRepository: CredentialsRe
     data class Response(val text: String, val computeUnits: Int, val isReducedComplexity: Boolean)
 
     suspend fun getTransformed(
-        text: String,
+        inputText: String,
         isReducedComplexity: Boolean,
         normalizedRandomness: Double = 0.35
     ): Response {
@@ -85,7 +91,7 @@ class AiTransformTextRepository(private val credentialsRepository: CredentialsRe
             setBody(
                 OpenAiCompletionRequestV1(
                     model = model.name,
-                    text,
+                    inputText,
                     max_tokens = model.maxResponseTokens,
                     temperature = normalizedRandomness.denormalizedToTemperature(maxValue = 2.0)
                 )

@@ -77,16 +77,23 @@ class AssistantViewModel constructor(
             uiStateFlow.value = uiStateFlow.value.copy(
                 text = newText
             )
+            updateCostEstimate()
         }
-        backgroundCoroutineScope.launch {
-            val estimate = aiTransformTextUseCase.execute(
-                text = newText,
-                isDryRun = true,
-            )
-            mainThreadCoroutineScope.launch {
-                uiStateFlow.value = uiStateFlow.value.copy(
-                    estimateText = estimate.estimatedCost.text
+    }
+
+    private fun updateCostEstimate() {
+        (getSelectedTextAction() as? AiCompleteTextAction)?.let { textAction ->
+            backgroundCoroutineScope.launch {
+                val estimate = aiTransformTextUseCase.execute(
+                    text = uiStateFlow.value.text,
+                    postfixInstruction = textAction.postfixInstruction,
+                    isDryRun = true,
                 )
+                mainThreadCoroutineScope.launch {
+                    uiStateFlow.value = uiStateFlow.value.copy(
+                        estimateText = estimate.estimatedCost.text
+                    )
+                }
             }
         }
     }
@@ -167,15 +174,18 @@ class AssistantViewModel constructor(
         }
     }
 
+    private fun getSelectedTextAction(): TextAction =
+        actionButtonModels[uiStateFlow.value.actionButtonSelectedIndex].textAction
+
     fun onInputComplete() {
-        val selectedAction = actionButtonModels[uiStateFlow.value.actionButtonSelectedIndex]
+        val textAction = getSelectedTextAction()
         uiStateFlow.value = uiStateFlow.value.copy(
             isBusyGettingResponse = true
         )
-        when (selectedAction.textAction) {
+        when (textAction) {
             is SearchOnlineTextAction -> {
                 val url =
-                    selectedAction.textAction.prefixUrl + URLEncoder.encode(
+                    textAction.prefixUrl + URLEncoder.encode(
                         uiStateFlow.value.text,
                         "utf-8"
                     )
@@ -191,10 +201,11 @@ class AssistantViewModel constructor(
                     val textBeforeAction = uiStateFlow.value.text
                     val textAfterAction = textBeforeAction.extendedWith(
                         appendedText = aiTransformTextUseCase.execute(
-                            text = textBeforeAction + selectedAction.textAction.postfixInstruction,
+                            text = textBeforeAction,
+                            postfixInstruction = textAction.postfixInstruction,
                             isDryRun = false,
-                        ).resultText,
-                        isAppendedTextSeparated = selectedAction.textAction.isResultSeparated
+                        ).also { println(it.actualCost.text) }.resultText,
+                        isAppendedTextSeparated = textAction.isResultSeparated
                     )
                     mainThreadCoroutineScope.launch {
                         uiEventFlow.emit(TextGenerated(textAfterAction))
