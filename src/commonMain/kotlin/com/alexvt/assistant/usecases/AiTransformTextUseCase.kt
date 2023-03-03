@@ -30,18 +30,32 @@ class AiTransformTextUseCase(
     suspend fun execute(
         text: String,
         postfixInstruction: String,
+        instructionLanguageModel: String = "DaVinci",
+        shorteningInstruction: String = "\n\nThe text above, slightly shortened:",
+        shorteningLanguageModel: String = "Turbo",
         isDryRun: Boolean,
-        languageModel: String = "DaVinci",
     ): TextTransformationResult {
         val availableLanguageModels = repositories.map { it.getLanguageModel() }
-        require(languageModel in availableLanguageModels) {
-            "Unknown language model: $languageModel, available: $availableLanguageModels"
+        require(instructionLanguageModel in availableLanguageModels) {
+            "Unknown language model: $instructionLanguageModel, available: $availableLanguageModels"
         }
-        val repository = repositories.first { it.getLanguageModel() == languageModel }
-        val simulatedResponses =
-            getResponsesForParts(text, postfixInstruction, isDryRun = true, repository)
-        val executionResponses =
-            getResponsesForParts(text, postfixInstruction, isDryRun, repository)
+        require(shorteningLanguageModel in availableLanguageModels) {
+            "Unknown language model: $instructionLanguageModel, available: $availableLanguageModels"
+        }
+        val instructionRepository =
+            repositories.first { it.getLanguageModel() == instructionLanguageModel }
+        val shorteningRepository =
+            repositories.first { it.getLanguageModel() == shorteningLanguageModel }
+        val simulatedResponses = getResponsesForParts(
+            text, postfixInstruction, instructionRepository,
+            shorteningInstruction, shorteningRepository,
+            isDryRun = true,
+        )
+        val executionResponses = getResponsesForParts(
+            text, postfixInstruction, instructionRepository,
+            shorteningInstruction, shorteningRepository,
+            isDryRun,
+        )
         return TextTransformationResult(
             isDryRun,
             resultText = executionResponses.last().text, // the previous ones have partial results
@@ -58,54 +72,55 @@ class AiTransformTextUseCase(
      * their concatenation will be transformed in just 1 single round; done.
      *
      * 2. A bigger text will be cut in overlapping parts, to minimize context loss at the edges.
-     * Each part will be maxed out to be transformed with a minimization instruction in 1 round.
+     * Each part will be maxed out to be transformed with a shortening instruction in 1 round.
      *
      * 3. The multiple part results will be concatenated in a new text; then going back to step 1.
      */
     private suspend fun getResponsesForParts(
         textWithoutInstruction: String,
         postfixInstruction: String,
+        instructionRepository: AiTextRepository,
+        shorteningInstruction: String,
+        shorteningRepository: AiTextRepository,
         isDryRun: Boolean,
-        repository: AiTextRepository,
     ): List<Response> {
         val isOneRoundRemaining =
-            repository.getComputeUnitsTotalEstimate(
+            instructionRepository.getComputeUnitsTotalEstimate(
                 inputText = textWithoutInstruction + postfixInstruction
-            ) <= repository.getComputeUnitsTotalLimit()
+            ) <= instructionRepository.getComputeUnitsTotalLimit()
         if (isOneRoundRemaining) {
             return getSingleRoundResponse(
                 inputText = textWithoutInstruction + postfixInstruction,
+                repository = instructionRepository,
                 isDryRun,
-                repository,
             ).run(::listOf)
         }
-        val partMinimizationPostfixInstruction = "\n\nThe text above, slightly shortened:"
-        val textPartSize = with(repository) {
+        val textPartSizeToShorten = with(instructionRepository) {
             val textPartComputeCostBudget =
                 getComputeUnitsTotalLimit() -
-                        getComputeUnitsTotalEstimate(
-                            inputText = partMinimizationPostfixInstruction
-                        )
+                        getComputeUnitsTotalEstimate(inputText = shorteningInstruction)
             getTextSizeForComputeUnits(textPartComputeCostBudget)
         } // todo max out each part with a tokenizer
-        val relativeOverlapBetweenParts = 0.1
-        val textParts = textWithoutInstruction.windowed(
-            size = textPartSize,
-            step = (textPartSize * (1 - relativeOverlapBetweenParts)).toInt(),
+        val relativeOverlapBetweenTextParts = 0.1
+        val textPartsToShorten = textWithoutInstruction.windowed(
+            size = textPartSizeToShorten,
+            step = (textPartSizeToShorten * (1 - relativeOverlapBetweenTextParts)).toInt(),
             partialWindows = true
         )
-        val partResponses = textParts.map { textPartWithoutInstruction ->
+        val shortenedTextPartResponses = textPartsToShorten.map { textPartWithoutInstruction ->
             getSingleRoundResponse(
-                inputText = textPartWithoutInstruction + partMinimizationPostfixInstruction,
+                inputText = textPartWithoutInstruction + shorteningInstruction,
+                repository = shorteningRepository,
                 isDryRun,
-                repository,
             )
         }
-        return partResponses + getResponsesForParts(
-            textWithoutInstruction = partResponses.joinToString(separator = "\n\n") { it.text },
-            postfixInstruction,
+        return shortenedTextPartResponses + getResponsesForParts(
+            textWithoutInstruction = shortenedTextPartResponses.joinToString(separator = "\n\n") {
+                it.text
+            },
+            postfixInstruction, instructionRepository,
+            shorteningInstruction, shorteningRepository,
             isDryRun,
-            repository,
         )
     }
 
@@ -145,8 +160,8 @@ class AiTransformTextUseCase(
 
     private suspend fun getSingleRoundResponse(
         inputText: String,
-        isDryRun: Boolean,
         repository: AiTextRepository,
+        isDryRun: Boolean,
     ): Response =
         if (isDryRun) {
             getSimulatedMaxSizeResponse(inputText, repository)
