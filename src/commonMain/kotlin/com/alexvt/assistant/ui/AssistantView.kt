@@ -33,9 +33,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alexvt.assistant.platform.openLinkInChrome
-import com.alexvt.assistant.repository.AiTransformTextRepository
-import com.alexvt.assistant.repository.CredentialsRepository
-import com.alexvt.assistant.repository.ExtractableImageTextRepository
+import com.alexvt.assistant.repository.*
 import com.alexvt.assistant.uicustomizations.BasicTextFieldWithScrollbar
 import com.alexvt.assistant.uitheme.Fonts
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
@@ -55,7 +53,13 @@ fun AssistantView(globalBounds: Rect) {
         AssistantViewModel(
             mainThreadCoroutineScope,
             backgroundCoroutineScope,
-            AiTransformTextUseCase(AiTransformTextRepository(CredentialsRepository())),
+            AiTransformTextUseCase(
+                listOf(
+                    AiTextCompleteCurieRepository(CredentialsRepository()),
+                    AiTextChatRepository(CredentialsRepository()),
+                    AiTextCompleteDaVinciRepository(CredentialsRepository()),
+                )
+            ),
             ExtractTextFromImageUseCase(ExtractableImageTextRepository()),
         )
     }

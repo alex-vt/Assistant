@@ -1,11 +1,11 @@
 package com.alexvt.assistant.usecases
 
-import com.alexvt.assistant.repository.AiTransformTextRepository
-import com.alexvt.assistant.repository.AiTransformTextRepository.Response
+import com.alexvt.assistant.repository.AiTextRepository
+import com.alexvt.assistant.repository.AiTextRepository.Response
 import java.math.MathContext
 
 class AiTransformTextUseCase(
-    private val repository: AiTransformTextRepository,
+    private val repositories: List<AiTextRepository>,
 ) {
 
     data class TextTransformationResult(
@@ -22,7 +22,7 @@ class AiTransformTextUseCase(
     )
 
     data class ComputeRound(
-        val isReducedComplexity: Boolean,
+        val languageModel: String,
         val computeUnits: Int,
         val usd: Double,
     )
@@ -31,12 +31,17 @@ class AiTransformTextUseCase(
         text: String,
         postfixInstruction: String,
         isDryRun: Boolean,
-        isReducedComplexity: Boolean = false,
+        languageModel: String = "DaVinci",
     ): TextTransformationResult {
+        val availableLanguageModels = repositories.map { it.getLanguageModel() }
+        require(languageModel in availableLanguageModels) {
+            "Unknown language model: $languageModel, available: $availableLanguageModels"
+        }
+        val repository = repositories.first { it.getLanguageModel() == languageModel }
         val simulatedResponses =
-            getResponsesForParts(text, postfixInstruction, isDryRun = true, isReducedComplexity)
+            getResponsesForParts(text, postfixInstruction, isDryRun = true, repository)
         val executionResponses =
-            getResponsesForParts(text, postfixInstruction, isDryRun, isReducedComplexity)
+            getResponsesForParts(text, postfixInstruction, isDryRun, repository)
         return TextTransformationResult(
             isDryRun,
             resultText = executionResponses.last().text, // the previous ones have partial results
@@ -61,27 +66,25 @@ class AiTransformTextUseCase(
         textWithoutInstruction: String,
         postfixInstruction: String,
         isDryRun: Boolean,
-        isReducedComplexity: Boolean,
+        repository: AiTextRepository,
     ): List<Response> {
         val isOneRoundRemaining =
             repository.getComputeUnitsTotalEstimate(
-                inputText = textWithoutInstruction + postfixInstruction,
-                isReducedComplexity
-            ) <= repository.getComputeUnitsTotalLimit(isReducedComplexity)
+                inputText = textWithoutInstruction + postfixInstruction
+            ) <= repository.getComputeUnitsTotalLimit()
         if (isOneRoundRemaining) {
             return getSingleRoundResponse(
                 inputText = textWithoutInstruction + postfixInstruction,
                 isDryRun,
-                isReducedComplexity
+                repository,
             ).run(::listOf)
         }
         val partMinimizationPostfixInstruction = "\n\nThe text above, slightly shortened:"
         val textPartSize = with(repository) {
             val textPartComputeCostBudget =
-                getComputeUnitsTotalLimit(isReducedComplexity) -
+                getComputeUnitsTotalLimit() -
                         getComputeUnitsTotalEstimate(
-                            inputText = partMinimizationPostfixInstruction,
-                            isReducedComplexity
+                            inputText = partMinimizationPostfixInstruction
                         )
             getTextSizeForComputeUnits(textPartComputeCostBudget)
         } // todo max out each part with a tokenizer
@@ -95,14 +98,14 @@ class AiTransformTextUseCase(
             getSingleRoundResponse(
                 inputText = textPartWithoutInstruction + partMinimizationPostfixInstruction,
                 isDryRun,
-                isReducedComplexity
+                repository,
             )
         }
         return partResponses + getResponsesForParts(
             textWithoutInstruction = partResponses.joinToString(separator = "\n\n") { it.text },
             postfixInstruction,
             isDryRun,
-            isReducedComplexity
+            repository,
         )
     }
 
@@ -118,9 +121,9 @@ class AiTransformTextUseCase(
     private fun Response.computeCost(): ComputeCost {
         val computeRounds = listOf(
             ComputeRound(
-                isReducedComplexity,
+                languageModel,
                 computeUnits = computeUnits,
-                usd = computeUnits * repository.getComputeUnitCost(isReducedComplexity)
+                usd = computeUnits * computeUnitCost
             )
         )
         return ComputeCost(
@@ -143,22 +146,23 @@ class AiTransformTextUseCase(
     private suspend fun getSingleRoundResponse(
         inputText: String,
         isDryRun: Boolean,
-        isReducedComplexity: Boolean,
+        repository: AiTextRepository,
     ): Response =
         if (isDryRun) {
-            getSimulatedMaxSizeResponse(inputText, isReducedComplexity)
+            getSimulatedMaxSizeResponse(inputText, repository)
         } else {
-            repository.getTransformed(inputText, isReducedComplexity)
+            repository.getTransformed(inputText)
         }
 
     private fun getSimulatedMaxSizeResponse(
         inputText: String,
-        isReducedComplexity: Boolean,
+        repository: AiTextRepository,
     ): Response =
         Response(
-            text = "#".repeat(repository.getComputeUnitsResponseLimit(isReducedComplexity)),
-            computeUnits = repository.getComputeUnitsTotalEstimate(inputText, isReducedComplexity),
-            isReducedComplexity
+            text = "#".repeat(repository.getComputeUnitsResponseLimit()),
+            languageModel = repository.getLanguageModel(),
+            computeUnits = repository.getComputeUnitsTotalEstimate(inputText),
+            computeUnitCost = repository.getComputeUnitCost(),
         )
 
 }
