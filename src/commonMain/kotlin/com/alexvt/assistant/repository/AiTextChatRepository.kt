@@ -59,8 +59,8 @@ class AiTextChatRepository(private val credentialsRepository: CredentialsReposit
         return Response(
             text = apiResponse.choices.joinToString { it.message.content },
             languageModel = model.label,
-            computeUnits = apiResponse.usage.total_tokens,
-            computeUnitCost = model.usdPerToken,
+            computeUnitsTotal = apiResponse.usage.total_tokens,
+            computeUnitCostUsd = model.usdPerToken,
         )
     }
 

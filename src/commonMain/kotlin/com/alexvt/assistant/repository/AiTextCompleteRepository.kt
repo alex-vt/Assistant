@@ -50,8 +50,8 @@ abstract class AiTextCompleteRepository(private val credentialsRepository: Crede
         return Response(
             text = apiResponse.choices.joinToString { it.text },
             languageModel = model.label,
-            computeUnits = apiResponse.usage.total_tokens,
-            computeUnitCost = model.usdPerToken,
+            computeUnitsTotal = apiResponse.usage.total_tokens,
+            computeUnitCostUsd = model.usdPerToken,
         )
     }
 

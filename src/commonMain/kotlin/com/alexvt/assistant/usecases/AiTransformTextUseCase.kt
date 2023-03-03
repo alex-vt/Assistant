@@ -137,8 +137,8 @@ class AiTransformTextUseCase(
         val computeRounds = listOf(
             ComputeRound(
                 languageModel,
-                computeUnits = computeUnits,
-                usd = computeUnits * computeUnitCost
+                computeUnits = computeUnitsTotal,
+                usd = computeUnitsTotal * computeUnitCostUsd
             )
         )
         return ComputeCost(
@@ -176,8 +176,8 @@ class AiTransformTextUseCase(
         Response(
             text = "#".repeat(repository.getComputeUnitsResponseLimit()),
             languageModel = repository.getLanguageModel(),
-            computeUnits = repository.getComputeUnitsTotalEstimate(inputText),
-            computeUnitCost = repository.getComputeUnitCost(),
+            computeUnitsTotal = repository.getComputeUnitsTotalEstimate(inputText),
+            computeUnitCostUsd = repository.getComputeUnitCostUsd(),
         )
 
 }

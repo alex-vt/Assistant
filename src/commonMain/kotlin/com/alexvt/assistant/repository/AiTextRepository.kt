@@ -31,7 +31,7 @@ abstract class AiTextRepository {
     fun getComputeUnitsResponseLimit(): Int =
         model.maxResponseTokens
 
-    fun getComputeUnitCost(): Double =
+    fun getComputeUnitCostUsd(): Double =
         model.usdPerToken
 
     fun getLanguageModel(): String =
@@ -40,8 +40,8 @@ abstract class AiTextRepository {
     data class Response(
         val text: String,
         val languageModel: String,
-        val computeUnits: Int,
-        val computeUnitCost: Double,
+        val computeUnitsTotal: Int,
+        val computeUnitCostUsd: Double,
     )
 
     suspend fun getTransformed(inputText: String, normalizedRandomness: Double = 0.35): Response =
