@@ -1,6 +1,8 @@
 package com.alexvt.assistant.ui
 
 import androidx.compose.ui.geometry.Offset
+import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
+import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +20,8 @@ class AssistantViewModel constructor(
     private val backgroundCoroutineScope: CoroutineScope,
     private val aiTransformTextUseCase: AiTransformTextUseCase,
     private val extractTextFromImageUseCase: ExtractTextFromImageUseCase,
+    private val aiTranscribeFromMicUseCase: AiTranscribeFromMicUseCase,
+    private val aiTranscribeFromMicStopRecordingUseCase: AiTranscribeFromMicStopRecordingUseCase,
 ) {
 
     private val uiStateFlow: MutableStateFlow<UiState> = MutableStateFlow(initialUiState)
@@ -46,6 +50,8 @@ class AssistantViewModel constructor(
         val screenshotRectLeft: Int,
         val screenshotRectRight: Int,
         val isBusyGettingTextFromScreenshot: Boolean,
+        val isRecordingFromMic: Boolean,
+        val isBusyGettingTextFromMicRecording: Boolean,
     )
 
     private sealed class TextAction
@@ -107,6 +113,35 @@ class AssistantViewModel constructor(
             uiStateFlow.value = uiStateFlow.value.copy(
                 isActive = false
             )
+        }
+    }
+
+    fun onMicButton() {
+        val isRecording = uiStateFlow.value.isRecordingFromMic
+        if (isRecording) {
+            aiTranscribeFromMicStopRecordingUseCase.execute()
+            uiStateFlow.value = uiStateFlow.value.copy(
+                isRecordingFromMic = false,
+                isBusyGettingTextFromMicRecording = true,
+            )
+        } else {
+            uiStateFlow.value = uiStateFlow.value.copy(
+                isRecordingFromMic = true,
+            )
+            backgroundCoroutineScope.launch {
+                val transcriptionResponse = aiTranscribeFromMicUseCase.execute()
+                val textBeforeTranscription = uiStateFlow.value.text
+                val textAfterTranscription =
+                    textBeforeTranscription.extendedWith(transcriptionResponse.text)
+                mainThreadCoroutineScope.launch {
+                    uiEventFlow.emit(TextGenerated(textAfterTranscription))
+                    uiStateFlow.value = uiStateFlow.value.copy(
+                        isRecordingFromMic = false,
+                        isBusyGettingTextFromMicRecording = false,
+                        text = textAfterTranscription,
+                    )
+                }
+            }
         }
     }
 
@@ -307,6 +342,8 @@ class AssistantViewModel constructor(
             screenshotRectLeft = 0,
             screenshotRectRight = 0,
             isBusyGettingTextFromScreenshot = false,
+            isRecordingFromMic = false,
+            isBusyGettingTextFromMicRecording = false,
         )
     }
 }

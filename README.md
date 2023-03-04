@@ -7,6 +7,7 @@ Opening the assistant on shortcut button press helps to edit text in any context
 Put text in the main text form from:
 * typing
 * screen capture
+* voice recording
 
 and get for it: answer, summary, etc. Or search in browser.
 

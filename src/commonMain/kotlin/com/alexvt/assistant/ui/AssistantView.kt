@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,8 @@ import com.alexvt.assistant.platform.openLinkInChrome
 import com.alexvt.assistant.repository.*
 import com.alexvt.assistant.uicustomizations.BasicTextFieldWithScrollbar
 import com.alexvt.assistant.uitheme.Fonts
+import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
+import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
 import kotlinx.coroutines.Dispatchers
@@ -49,18 +52,25 @@ import kotlinx.coroutines.plus
 fun AssistantView(globalBounds: Rect) {
     val mainThreadCoroutineScope = rememberCoroutineScope()
     val backgroundCoroutineScope = rememberCoroutineScope() + Dispatchers.Default
+    val credentialsRepository = CredentialsRepository()
+    val soundRecordingRepository = SoundRecordingRepository()
     val viewModel = remember {
         AssistantViewModel(
             mainThreadCoroutineScope,
             backgroundCoroutineScope,
             AiTransformTextUseCase(
                 listOf(
-                    AiTextCompleteCurieRepository(CredentialsRepository()),
-                    AiTextChatRepository(CredentialsRepository()),
-                    AiTextCompleteDaVinciRepository(CredentialsRepository()),
+                    AiTextCompleteCurieRepository(credentialsRepository),
+                    AiTextChatRepository(credentialsRepository),
+                    AiTextCompleteDaVinciRepository(credentialsRepository),
                 )
             ),
             ExtractTextFromImageUseCase(ExtractableImageTextRepository()),
+            AiTranscribeFromMicUseCase(
+                soundRecordingRepository,
+                AiSpeechTranscriptionRepository(credentialsRepository)
+            ),
+            AiTranscribeFromMicStopRecordingUseCase(soundRecordingRepository)
         )
     }
 
@@ -218,14 +228,19 @@ fun AssistantView(globalBounds: Rect) {
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                             )
-                            /*
                             Icon(
                                 Icons.Default.Mic,
-                                tint = Color(0xFFFFFFFF).copy(alpha = 0.6f),
+                                tint = if (uiState.isRecordingFromMic) {
+                                    Color(0xFFFF7777)
+                                } else {
+                                    Color(0xFFFFFFFF).copy(alpha = 0.6f)
+                                },
                                 contentDescription = "From voice recording",
                                 modifier = Modifier.padding(6.dp).size(20.dp)
+                                    .clickable {
+                                        viewModel.onMicButton()
+                                    }
                             )
-                            */
                             Icon(
                                 Icons.Default.Screenshot,
                                 tint = Color(0xFFFFFFFF).copy(alpha = 0.6f),
@@ -263,6 +278,23 @@ fun AssistantView(globalBounds: Rect) {
                         ) {
                             Text(
                                 text = "Getting text from screen area...",
+                                color = MaterialTheme.colors.primary,
+                                modifier = Modifier.padding(10.dp)
+                                    .width(400.dp)
+                                    .height(IntrinsicSize.Min)
+                                    .align(Alignment.BottomCenter)
+                            )
+                        }
+                    }
+                    if (uiState.isBusyGettingTextFromMicRecording) {
+                        Box(
+                            Modifier
+                                .background(Color(0x77303030))
+                                .clickable { /* intercept */ }
+                                .matchParentSize()
+                        ) {
+                            Text(
+                                text = "Getting text from mic recording...",
                                 color = MaterialTheme.colors.primary,
                                 modifier = Modifier.padding(10.dp)
                                     .width(400.dp)
