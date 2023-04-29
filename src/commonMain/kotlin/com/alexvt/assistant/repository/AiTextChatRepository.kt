@@ -1,12 +1,16 @@
 package com.alexvt.assistant.repository
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.plugin
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -18,7 +22,8 @@ class AiTextChatRepository(private val credentialsRepository: CredentialsReposit
         label = "Turbo",
         maxTotalTokens = 4096,
         maxResponseTokens = 512,
-        usdPerToken = 0.000002,
+        usdPerRequestToken = 0.000002,
+        usdPerResponseToken = 0.000002,
         timeoutMillis = 60_000,
     )
 
@@ -59,8 +64,12 @@ class AiTextChatRepository(private val credentialsRepository: CredentialsReposit
         return Response(
             text = apiResponse.choices.joinToString { it.message.content },
             languageModel = model.label,
-            computeUnitsTotal = apiResponse.usage.total_tokens,
-            computeUnitCostUsd = model.usdPerToken,
+            computeUnitsInRequest = apiResponse.usage.prompt_tokens,
+            computeUnitsInResponse = with(apiResponse.usage) {
+                completion_tokens ?: (total_tokens - prompt_tokens).coerceAtLeast(0)
+            },
+            computeUnitRequestCostUsd = model.usdPerRequestToken,
+            computeUnitResponseCostUsd = model.usdPerResponseToken,
         )
     }
 

@@ -11,7 +11,8 @@ abstract class AiTextRepository {
         val maxTemperature: Double = 2.0,
         val maxTotalTokens: Int,
         val maxResponseTokens: Int,
-        val usdPerToken: Double,
+        val usdPerRequestToken: Double,
+        val usdPerResponseToken: Double,
         val timeoutMillis: Long,
     )
 
@@ -41,8 +42,11 @@ abstract class AiTextRepository {
     fun getComputeUnitsResponseLimit(): Int =
         model.maxResponseTokens
 
-    fun getComputeUnitCostUsd(): Double =
-        model.usdPerToken
+    fun getComputeUnitRequestCostUsd(): Double =
+        model.usdPerRequestToken
+
+    fun getComputeUnitResponseCostUsd(): Double =
+        model.usdPerResponseToken
 
     fun getLanguageModel(): String =
         model.label
@@ -50,8 +54,10 @@ abstract class AiTextRepository {
     data class Response(
         val text: String,
         val languageModel: String,
-        val computeUnitsTotal: Int,
-        val computeUnitCostUsd: Double,
+        val computeUnitsInRequest: Int,
+        val computeUnitsInResponse: Int,
+        val computeUnitRequestCostUsd: Double,
+        val computeUnitResponseCostUsd: Double,
     )
 
     suspend fun getTransformed(inputText: String, normalizedRandomness: Double = 0.35): Response =

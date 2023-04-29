@@ -8,7 +8,8 @@ class AiTextCompleteCurieRepository(credentialsRepository: CredentialsRepository
         label = "Curie",
         maxTotalTokens = 2048,
         maxResponseTokens = 256,
-        usdPerToken = 0.000002,
+        usdPerRequestToken = 0.000002,
+        usdPerResponseToken = 0.000002,
         timeoutMillis = 60_000,
     )
 }

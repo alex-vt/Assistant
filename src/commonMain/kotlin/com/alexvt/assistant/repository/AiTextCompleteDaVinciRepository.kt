@@ -8,7 +8,8 @@ class AiTextCompleteDaVinciRepository(credentialsRepository: CredentialsReposito
         label = "DaVinci",
         maxTotalTokens = 4096,
         maxResponseTokens = 512,
-        usdPerToken = 0.00002,
+        usdPerRequestToken = 0.00002,
+        usdPerResponseToken = 0.00002,
         timeoutMillis = 60_000,
     )
 
