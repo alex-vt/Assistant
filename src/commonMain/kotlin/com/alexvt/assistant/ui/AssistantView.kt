@@ -228,6 +228,14 @@ fun AssistantView(globalBounds: Rect) {
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                             )
+                            if (uiState.actualCostText.isNotBlank()) {
+                                Text(
+                                    text = uiState.actualCostText,
+                                    color = Color(0xFF668866),
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                )
+                            }
                             Icon(
                                 Icons.Default.Mic,
                                 tint = if (uiState.isRecordingFromMic) {

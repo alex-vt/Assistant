@@ -42,6 +42,7 @@ class AssistantViewModel constructor(
         val isBusyGettingResponse: Boolean,
         val text: String,
         val estimateText: String,
+        val actualCostText: String,
         val isPreviewingScreenshot: Boolean,
         val isPickingScreenshot: Boolean,
         val screenshotStartX: Int,
@@ -82,7 +83,8 @@ class AssistantViewModel constructor(
     fun onTextChanged(newText: String) {
         if (newText != uiStateFlow.value.text) {
             uiStateFlow.value = uiStateFlow.value.copy(
-                text = newText
+                text = newText,
+                actualCostText = "",
             )
             updateCostEstimate()
         }
@@ -94,7 +96,7 @@ class AssistantViewModel constructor(
         (getSelectedTextAction() as? AiCompleteTextAction)?.let { textAction ->
             costEstimateJobOrNull?.cancel()
             uiStateFlow.value = uiStateFlow.value.copy(
-                estimateText = "computing cost ..."
+                estimateText = "computing cost ...",
             )
             costEstimateJobOrNull = backgroundCoroutineScope.launch {
                 val estimate = aiTransformTextUseCase.execute(
@@ -104,7 +106,7 @@ class AssistantViewModel constructor(
                 )
                 mainThreadCoroutineScope.launch {
                     uiStateFlow.value = uiStateFlow.value.copy(
-                        estimateText = estimate.estimatedCost.text
+                        estimateText = "~ ${estimate.estimatedCost.text}",
                     )
                 }
             }
@@ -245,19 +247,22 @@ class AssistantViewModel constructor(
                 )
                 backgroundCoroutineScope.launch {
                     val textBeforeAction = uiStateFlow.value.text
+                    val runResult = aiTransformTextUseCase.execute(
+                        text = textBeforeAction,
+                        postfixInstruction = textAction.postfixInstruction,
+                        isDryRun = false,
+                    )
                     val textAfterAction = textBeforeAction.extendedWith(
-                        appendedText = aiTransformTextUseCase.execute(
-                            text = textBeforeAction,
-                            postfixInstruction = textAction.postfixInstruction,
-                            isDryRun = false,
-                        ).also { println(it.actualCost.text) }.resultText,
+                        appendedText = runResult.resultText,
                         isAppendedTextSeparated = textAction.isResultSeparated
                     )
                     mainThreadCoroutineScope.launch {
                         uiEventFlow.emit(TextGenerated(textAfterAction))
                         uiStateFlow.value = uiStateFlow.value.copy(
                             isBusyGettingResponse = false,
-                            text = textAfterAction
+                            text = textAfterAction,
+                            estimateText = "~ ${runResult.estimatedCost.text}",
+                            actualCostText = "used: ${runResult.actualCost.text}",
                         )
                     }
                 }
@@ -344,6 +349,7 @@ class AssistantViewModel constructor(
             isBusyGettingResponse = false,
             text = "",
             estimateText = "",
+            actualCostText = "",
             isPreviewingScreenshot = false,
             isPickingScreenshot = false,
             screenshotStartX = 0,
