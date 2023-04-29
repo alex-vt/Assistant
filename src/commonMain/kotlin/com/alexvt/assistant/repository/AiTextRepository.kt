@@ -10,7 +10,7 @@ abstract class AiTextRepository {
         val name: String,
         val maxTemperature: Double = 2.0,
         val maxTotalTokens: Int,
-        val maxResponseTokens: Int,
+        val maxResponseTokens: Int, // a limit in the app, not of the language model
         val usdPerRequestToken: Double,
         val usdPerResponseToken: Double,
         val timeoutMillis: Long,

@@ -61,8 +61,9 @@ fun AssistantView(globalBounds: Rect) {
             AiTransformTextUseCase(
                 listOf(
                     AiTextCompleteCurieRepository(credentialsRepository),
-                    AiTextChatRepository(credentialsRepository),
+                    AiTextChatGptTurboRepository(credentialsRepository),
                     AiTextCompleteDaVinciRepository(credentialsRepository),
+                    AiTextChatGpt4Repository(credentialsRepository),
                 )
             ),
             ExtractTextFromImageUseCase(ExtractableImageTextRepository()),

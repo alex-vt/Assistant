@@ -14,18 +14,8 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-class AiTextChatRepository(private val credentialsRepository: CredentialsRepository) :
+abstract class AiTextChatRepository(private val credentialsRepository: CredentialsRepository) :
     AiTextRepository() {
-
-    override val model = LanguageModel(
-        name = "gpt-3.5-turbo",
-        label = "Turbo",
-        maxTotalTokens = 4096,
-        maxResponseTokens = 512,
-        usdPerRequestToken = 0.000002,
-        usdPerResponseToken = 0.000002,
-        timeoutMillis = 60_000,
-    )
 
     override suspend fun getTransformedWithTemperature(
         inputText: String,
