@@ -14,12 +14,12 @@ class AiTextChatRepository(private val credentialsRepository: CredentialsReposit
     AiTextRepository() {
 
     override val model = LanguageModel(
-        name = "gpt-3.5-turbo-0301",
+        name = "gpt-3.5-turbo",
         label = "Turbo",
         maxTotalTokens = 4096,
         maxResponseTokens = 512,
         usdPerToken = 0.000002,
-        timeoutMillis = 20_000,
+        timeoutMillis = 60_000,
     )
 
     override suspend fun getTransformedWithTemperature(

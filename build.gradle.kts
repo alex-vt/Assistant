@@ -47,6 +47,8 @@ kotlin {
                 implementation("io.ktor:ktor-client-content-negotiation:2.2.3")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:2.2.3")
 
+                implementation("com.knuddels:jtokkit:0.4.0")
+
                 implementation("net.sourceforge.tess4j:tess4j:5.6.0")
                 implementation("com.github.tulskiy:jkeymaster:1.3")
             }

@@ -1,5 +1,8 @@
 package com.alexvt.assistant.repository
 
+import com.knuddels.jtokkit.Encodings
+import com.knuddels.jtokkit.api.ModelType
+
 abstract class AiTextRepository {
 
     protected data class LanguageModel(
@@ -16,14 +19,21 @@ abstract class AiTextRepository {
 
     /**
      * A compute unit for OpenAI API is a token.
-     * A conservative estimate is 1 token for 1 character.
-     * todo use tokenizer for estimation
+     * While response size in tokens is unknown and estimated at maximum,
+     * request size in tokens is calculated and added to response size.
      */
     fun getComputeUnitsTotalEstimate(inputText: String): Int =
-        inputText.length + model.maxResponseTokens
+        getComputeUnitsRequestEstimate(inputText) + model.maxResponseTokens
 
-    fun getTextSizeForComputeUnits(computeUnits: Int): Int =
-        computeUnits // same conservative estimate
+    private fun getComputeUnitsRequestEstimate(requestText: String): Int {
+        return Encodings.newDefaultEncodingRegistry()
+            .getEncodingForModel(
+                ModelType.valueOf(
+                    model.name.uppercase().replace('-', '_').replace('.', '_')
+                )
+            )
+            .countTokens(requestText)
+    }
 
     fun getComputeUnitsTotalLimit(): Int =
         model.maxTotalTokens

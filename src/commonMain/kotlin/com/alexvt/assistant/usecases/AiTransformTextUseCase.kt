@@ -95,18 +95,8 @@ class AiTransformTextUseCase(
                 isDryRun,
             ).run(::listOf)
         }
-        val textPartSizeToShorten = with(instructionRepository) {
-            val textPartComputeCostBudget =
-                getComputeUnitsTotalLimit() -
-                        getComputeUnitsTotalEstimate(inputText = shorteningInstruction)
-            getTextSizeForComputeUnits(textPartComputeCostBudget)
-        } // todo max out each part with a tokenizer
-        val relativeOverlapBetweenTextParts = 0.1
-        val textPartsToShorten = textWithoutInstruction.windowed(
-            size = textPartSizeToShorten,
-            step = (textPartSizeToShorten * (1 - relativeOverlapBetweenTextParts)).toInt(),
-            partialWindows = true
-        )
+        val textPartsToShorten =
+            textWithoutInstruction.splitIntoOverlappingParts(shorteningRepository)
         val shortenedTextPartResponses = textPartsToShorten.map { textPartWithoutInstruction ->
             getSingleRoundResponse(
                 inputText = textPartWithoutInstruction + shorteningInstruction,
@@ -122,6 +112,66 @@ class AiTransformTextUseCase(
             shorteningInstruction, shorteningRepository,
             isDryRun,
         )
+    }
+
+    /**
+     * In a long text, the beginning of maximum possible size is repeatedly cut off.
+     * The remaining part is backtracked by the size of overlap.
+     * Max possible size (in characters) for each part is the one which is tokenized into
+     * no more than max tokens for the given language model.
+     */
+    private fun String.splitIntoOverlappingParts(
+        shorteningRepository: AiTextRepository,
+        overlapByCharacters: Int = 100, // to minimize context loss at between-parts boundaries
+        splittingAccuracy: Int = 10, // how close (or closer) is enough to approach max part size
+    ): List<String> {
+        val resultingParts = mutableListOf<String>()
+        var remainingBigText = this
+        while (remainingBigText.isNotEmpty()) {
+            // Because each token typically corresponds to one or a few characters,
+            // part size search (in characters) increment starts with token limit for it,
+            // with exponential halving when gradually meeting the target size.
+            // This way the big text is split into minimal possible number of parts.
+            var currentPartSizeIncrement = with(shorteningRepository) {
+                getComputeUnitsTotalLimit() - getComputeUnitsResponseLimit()
+            }
+            var currentPartSize = 0
+            while (currentPartSizeIncrement > splittingAccuracy) {
+                while (
+                    canIncreasePart(
+                        remainingBigText,
+                        currentPartSize,
+                        proposedPartSizeIncrement = currentPartSizeIncrement,
+                        shorteningRepository
+                    )
+                ) {
+                    currentPartSize += currentPartSizeIncrement
+                }
+                currentPartSizeIncrement /= 2
+            }
+            val currentPart = remainingBigText.take(currentPartSize)
+            // if end of big text reached, no need to backtrack by overlap
+            remainingBigText =
+                remainingBigText.drop(currentPartSize).takeIf { it.isEmpty() }
+                    ?: remainingBigText.drop(
+                        (currentPartSize - overlapByCharacters).coerceAtLeast(0)
+                    )
+            resultingParts.add(currentPart)
+        }
+        return resultingParts
+    }
+
+    private fun canIncreasePart(
+        remainingBigText: String,
+        currentPartSize: Int,
+        proposedPartSizeIncrement: Int,
+        shorteningRepository: AiTextRepository,
+    ): Boolean {
+        if (remainingBigText.length <= currentPartSize) return false // no room to increase part
+        val proposedPart = remainingBigText.take(currentPartSize + proposedPartSizeIncrement)
+        return with(shorteningRepository) {
+            getComputeUnitsTotalEstimate(proposedPart) <= getComputeUnitsTotalLimit()
+        }
     }
 
     private fun List<Response>.totalCost(): ComputeCost {
@@ -150,7 +200,7 @@ class AiTransformTextUseCase(
 
     private fun List<ComputeRound>.toEstimateText(): String {
         //if (size <= 1) return "" // considered less significant
-        return "$size rounds, \$${sumOf { it.usd }.withDecimalPlaces(2)}"
+        return "~ $size rounds, \$${sumOf { it.usd }.withDecimalPlaces(2)}"
     }
 
     private fun Double.withDecimalPlaces(places: Int): String =

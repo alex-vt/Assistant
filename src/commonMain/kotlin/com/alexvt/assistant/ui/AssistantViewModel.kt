@@ -6,6 +6,7 @@ import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -87,9 +88,15 @@ class AssistantViewModel constructor(
         }
     }
 
+    private var costEstimateJobOrNull: Job? = null
+
     private fun updateCostEstimate() {
         (getSelectedTextAction() as? AiCompleteTextAction)?.let { textAction ->
-            backgroundCoroutineScope.launch {
+            costEstimateJobOrNull?.cancel()
+            uiStateFlow.value = uiStateFlow.value.copy(
+                estimateText = "computing cost ..."
+            )
+            costEstimateJobOrNull = backgroundCoroutineScope.launch {
                 val estimate = aiTransformTextUseCase.execute(
                     text = uiStateFlow.value.text,
                     postfixInstruction = textAction.postfixInstruction,
@@ -232,6 +239,10 @@ class AssistantViewModel constructor(
                 }
             }
             is AiCompleteTextAction -> {
+                costEstimateJobOrNull?.cancel()
+                uiStateFlow.value = uiStateFlow.value.copy(
+                    estimateText = ""
+                )
                 backgroundCoroutineScope.launch {
                     val textBeforeAction = uiStateFlow.value.text
                     val textAfterAction = textBeforeAction.extendedWith(

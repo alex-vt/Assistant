@@ -9,6 +9,6 @@ class AiTextCompleteCurieRepository(credentialsRepository: CredentialsRepository
         maxTotalTokens = 2048,
         maxResponseTokens = 256,
         usdPerToken = 0.000002,
-        timeoutMillis = 20_000,
+        timeoutMillis = 60_000,
     )
 }
