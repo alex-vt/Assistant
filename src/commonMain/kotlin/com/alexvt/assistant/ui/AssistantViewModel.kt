@@ -36,6 +36,8 @@ class AssistantViewModel constructor(
 
     data class UiState(
         val isActive: Boolean,
+        val isInstructionLanguageModelSelected: Boolean,
+        val instructionLanguageModel: String,
         val actionButtonNames: List<String>,
         val actionIconTints: List<Int>,
         val actionButtonSelectedIndex: Int,
@@ -101,6 +103,7 @@ class AssistantViewModel constructor(
             costEstimateJobOrNull = backgroundCoroutineScope.launch {
                 val estimate = aiTransformTextUseCase.execute(
                     text = uiStateFlow.value.text,
+                    instructionLanguageModel = uiStateFlow.value.instructionLanguageModel,
                     postfixInstruction = textAction.postfixInstruction,
                     isDryRun = true,
                 )
@@ -221,7 +224,8 @@ class AssistantViewModel constructor(
     private fun getSelectedTextAction(): TextAction =
         actionButtonModels[uiStateFlow.value.actionButtonSelectedIndex].textAction
 
-    fun onInputComplete() {
+    fun onInputEnter() {
+        if (!uiStateFlow.value.isInstructionLanguageModelSelected) return
         val textAction = getSelectedTextAction()
         uiStateFlow.value = uiStateFlow.value.copy(
             isBusyGettingResponse = true
@@ -249,8 +253,9 @@ class AssistantViewModel constructor(
                     val textBeforeAction = uiStateFlow.value.text
                     val runResult = aiTransformTextUseCase.execute(
                         text = textBeforeAction,
+                        instructionLanguageModel = uiStateFlow.value.instructionLanguageModel,
                         postfixInstruction = textAction.postfixInstruction,
-                        isDryRun = false,
+                        isDryRun = !uiStateFlow.value.isInstructionLanguageModelSelected,
                     )
                     val textAfterAction = textBeforeAction.extendedWith(
                         appendedText = runResult.resultText,
@@ -287,11 +292,43 @@ class AssistantViewModel constructor(
     private fun String.trimEndIf(condition: Boolean): String =
         if (condition) trimEnd() else this
 
-    fun onButtonClick(buttonIndex: Int) {
+    fun onActionButtonClick(buttonIndex: Int) {
         uiStateFlow.value = uiStateFlow.value.copy(
             actionButtonSelectedIndex = buttonIndex
         )
-        onInputComplete()
+        onInputEnter()
+    }
+
+    fun onInstructionModelSelectMin() {
+        uiStateFlow.value = uiStateFlow.value.copy(
+            isInstructionLanguageModelSelected = true,
+            instructionLanguageModel = "Turbo",
+        )
+        updateCostEstimate()
+    }
+
+    fun onInstructionModelSelectMedium() {
+        uiStateFlow.value = uiStateFlow.value.copy(
+            isInstructionLanguageModelSelected = true,
+            instructionLanguageModel = "DaVinci",
+        )
+        updateCostEstimate()
+    }
+
+    fun onInstructionModelSelectMax() {
+        uiStateFlow.value = uiStateFlow.value.copy(
+            isInstructionLanguageModelSelected = true,
+            instructionLanguageModel = "GPT4",
+        )
+        updateCostEstimate()
+    }
+
+    fun onInstructionModelUnselect() {
+        uiStateFlow.value = uiStateFlow.value.copy(
+            isInstructionLanguageModelSelected = false,
+            instructionLanguageModel = "Turbo", // for by-default cost estimates
+        )
+        updateCostEstimate()
     }
 
     companion object {
@@ -343,6 +380,8 @@ class AssistantViewModel constructor(
         private const val defaultSelectedActionIndex = 3
         private val initialUiState = UiState(
             isActive = true,
+            instructionLanguageModel = "Turbo",
+            isInstructionLanguageModelSelected = false,
             actionButtonNames = actionButtonModels.map { it.title },
             actionIconTints = actionButtonModels.map { it.iconTint },
             actionButtonSelectedIndex = defaultSelectedActionIndex,

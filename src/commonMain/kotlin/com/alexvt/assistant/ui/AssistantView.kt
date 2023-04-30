@@ -4,13 +4,36 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.Icon
+import androidx.compose.material.LocalContentColor
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Screenshot
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -24,7 +47,13 @@ import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -34,7 +63,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alexvt.assistant.platform.openLinkInChrome
-import com.alexvt.assistant.repository.*
+import com.alexvt.assistant.repository.AiSpeechTranscriptionRepository
+import com.alexvt.assistant.repository.AiTextChatGpt4Repository
+import com.alexvt.assistant.repository.AiTextChatGptTurboRepository
+import com.alexvt.assistant.repository.AiTextCompleteCurieRepository
+import com.alexvt.assistant.repository.AiTextCompleteDaVinciRepository
+import com.alexvt.assistant.repository.CredentialsRepository
+import com.alexvt.assistant.repository.ExtractableImageTextRepository
+import com.alexvt.assistant.repository.SoundRecordingRepository
 import com.alexvt.assistant.uicustomizations.BasicTextFieldWithScrollbar
 import com.alexvt.assistant.uitheme.Fonts
 import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
@@ -88,6 +124,7 @@ fun AssistantView(globalBounds: Rect) {
                     is AssistantViewModel.ViewExternally -> {
                         openLinkInChrome(event.url)
                     }
+
                     is AssistantViewModel.TextGenerated -> {
                         textFieldValue.value =
                             TextFieldValue(
@@ -107,24 +144,37 @@ fun AssistantView(globalBounds: Rect) {
         Box(
             Modifier
                 .onKeyEvent {
+                    // modifier keys only
+                    if (it.key == Key.CtrlRight || it.key == Key.ShiftRight) {
+                        if (it.isShiftPressed && it.isCtrlPressed) {
+                            viewModel.onInstructionModelSelectMax()
+                        } else if (it.isShiftPressed) {
+                            viewModel.onInstructionModelSelectMedium()
+                        } else if (it.isCtrlPressed) {
+                            viewModel.onInstructionModelSelectMin()
+                        } else {
+                            viewModel.onInstructionModelUnselect()
+                        }
+                    }
+                    // other keys
                     if (it.key == Key.Escape && it.type == KeyEventType.KeyDown) {
                         viewModel.onEscape()
                     } else if (it.key == Key.F1 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onButtonClick(buttonIndex = 0)
+                        viewModel.onActionButtonClick(buttonIndex = 0)
                     } else if (it.key == Key.F2 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onButtonClick(buttonIndex = 1)
+                        viewModel.onActionButtonClick(buttonIndex = 1)
                     } else if (it.key == Key.F3 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onButtonClick(buttonIndex = 2)
+                        viewModel.onActionButtonClick(buttonIndex = 2)
                     } else if (it.key == Key.F4 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onButtonClick(buttonIndex = 3)
+                        viewModel.onActionButtonClick(buttonIndex = 3)
                     } else if (it.key == Key.F5 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onButtonClick(buttonIndex = 4)
+                        viewModel.onActionButtonClick(buttonIndex = 4)
                     } else if (it.key == Key.F6 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onButtonClick(buttonIndex = 5)
+                        viewModel.onActionButtonClick(buttonIndex = 5)
                     } else if (it.key == Key.F7 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onButtonClick(buttonIndex = 6)
-                    } else if (it.key == Key.Enter && it.isCtrlPressed && it.type == KeyEventType.KeyDown) {
-                        viewModel.onInputComplete()
+                        viewModel.onActionButtonClick(buttonIndex = 6)
+                    } else if (it.key == Key.Enter && it.type == KeyEventType.KeyDown) {
+                        viewModel.onInputEnter()
                     } else if (it.key == Key.PrintScreen && it.isCtrlPressed && it.type == KeyEventType.KeyDown) {
                         viewModel.previewTakeScreenshot()
                     }
@@ -187,7 +237,7 @@ fun AssistantView(globalBounds: Rect) {
                                 uiState.actionIconTints,
                                 selectedIndex = uiState.actionButtonSelectedIndex,
                             ) { index ->
-                                viewModel.onButtonClick(index)
+                                viewModel.onActionButtonClick(index)
                             }
                             Spacer(modifier = Modifier.weight(1f))
                         }

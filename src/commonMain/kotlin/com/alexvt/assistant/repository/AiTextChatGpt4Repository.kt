@@ -5,7 +5,7 @@ class AiTextChatGpt4Repository(credentialsRepository: CredentialsRepository) :
 
     override val model = LanguageModel(
         name = "gpt-4",
-        label = "GPT-4",
+        label = "GPT4",
         maxTotalTokens = 8192,
         maxResponseTokens = 1024,
         usdPerRequestToken = 0.00003,
