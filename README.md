@@ -215,6 +215,24 @@ The number of rounds given in addition to cost may be useful for estimating tota
 _Note: The text splitting technique may be subject for replacement with a method with better
 capability._
 
+### Text dictation
+
+When the microphone button is pressed, Assistant starts recording voice from the default microphone. 
+The microphone button is red when recording. Press it again to finish. 
+
+Assistant gets the dictated text using OpenAI speech-to-text Whisper model, and adds the dictated text in the end of the text input form. 
+
+#### Duration and cost estimates for text dictation:
+
+| Costs \ Duration          | 1 minute     | 12.5 minutes (max) |
+|---------------------------|--------------|--------------------|
+| OpenAI Whisper model name | `large-v2`   | `large-v2`         |
+| Cost estimate             | 0.006 USD`*` | 0.075 USD          |
+| Data usage (uploads)      | 2 MB         | 25 MB`*`           |
+
+>`* Primary source of data for recording per-minute cost and max size: OpenAI.`
+
+
 ## Running the app
 
 ### Desktop, Linux
