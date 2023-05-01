@@ -157,26 +157,23 @@ fun AssistantView(globalBounds: Rect) {
                         }
                     }
                     // other keys
-                    if (it.key == Key.Escape && it.type == KeyEventType.KeyDown) {
-                        viewModel.onEscape()
-                    } else if (it.key == Key.F1 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onActionButtonClick(buttonIndex = 0)
-                    } else if (it.key == Key.F2 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onActionButtonClick(buttonIndex = 1)
-                    } else if (it.key == Key.F3 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onActionButtonClick(buttonIndex = 2)
-                    } else if (it.key == Key.F4 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onActionButtonClick(buttonIndex = 3)
-                    } else if (it.key == Key.F5 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onActionButtonClick(buttonIndex = 4)
-                    } else if (it.key == Key.F6 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onActionButtonClick(buttonIndex = 5)
-                    } else if (it.key == Key.F7 && it.type == KeyEventType.KeyDown) {
-                        viewModel.onActionButtonClick(buttonIndex = 6)
-                    } else if (it.key == Key.Enter && it.type == KeyEventType.KeyDown) {
-                        viewModel.onInputEnter()
-                    } else if (it.key == Key.PrintScreen && it.isCtrlPressed && it.type == KeyEventType.KeyDown) {
-                        viewModel.previewTakeScreenshot()
+                    if (it.type == KeyEventType.KeyDown) {
+                        when (it.key) {
+                            Key.Escape -> viewModel.onEscape()
+                            Key.F1 -> viewModel.onActionButtonClick(buttonIndex = 0)
+                            Key.F2 -> viewModel.onActionButtonClick(buttonIndex = 1)
+                            Key.F3 -> viewModel.onActionButtonClick(buttonIndex = 2)
+                            Key.F4 -> viewModel.onActionButtonClick(buttonIndex = 3)
+                            Key.F5 -> viewModel.onActionButtonClick(buttonIndex = 4)
+                            Key.F6 -> viewModel.onActionButtonClick(buttonIndex = 5)
+                            Key.F7 -> viewModel.onActionButtonClick(buttonIndex = 6)
+                            Key.Enter -> viewModel.onInputEnter()
+                            Key.PrintScreen -> {
+                                if (it.isCtrlPressed) {
+                                    viewModel.previewTakeScreenshot()
+                                }
+                            }
+                        }
                     }
                     true
                 }

@@ -6,12 +6,15 @@ import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import kotlin.math.max
 import kotlin.math.min
@@ -59,7 +62,11 @@ class AssistantViewModel constructor(
     )
 
     private sealed class TextAction
-    private data class SearchOnlineTextAction(val prefixUrl: String) : TextAction()
+    private data class SearchOnlineTextAction(
+        val aiPostfixInstruction: String, // used to make a search request with an language model
+        val prefixUrl: String,
+    ) : TextAction()
+
     private data class AiCompleteTextAction(
         val postfixInstruction: String,
         val isResultSeparated: Boolean,
@@ -88,31 +95,7 @@ class AssistantViewModel constructor(
                 text = newText,
                 actualCostText = "",
             )
-            updateCostEstimate()
-        }
-    }
-
-    private var costEstimateJobOrNull: Job? = null
-
-    private fun updateCostEstimate() {
-        (getSelectedTextAction() as? AiCompleteTextAction)?.let { textAction ->
-            costEstimateJobOrNull?.cancel()
-            uiStateFlow.value = uiStateFlow.value.copy(
-                estimateText = "computing cost ...",
-            )
-            costEstimateJobOrNull = backgroundCoroutineScope.launch {
-                val estimate = aiTransformTextUseCase.execute(
-                    text = uiStateFlow.value.text,
-                    instructionLanguageModel = uiStateFlow.value.instructionLanguageModel,
-                    postfixInstruction = textAction.postfixInstruction,
-                    isDryRun = true,
-                )
-                mainThreadCoroutineScope.launch {
-                    uiStateFlow.value = uiStateFlow.value.copy(
-                        estimateText = "~ ${estimate.estimatedCost.text}",
-                    )
-                }
-            }
+            tryRunSelectedAction(isExplicitRunCommandPassed = false)
         }
     }
 
@@ -224,55 +207,76 @@ class AssistantViewModel constructor(
     private fun getSelectedTextAction(): TextAction =
         actionButtonModels[uiStateFlow.value.actionButtonSelectedIndex].textAction
 
-    fun onInputEnter() {
-        if (!uiStateFlow.value.isInstructionLanguageModelSelected) return
-        val textAction = getSelectedTextAction()
-        uiStateFlow.value = uiStateFlow.value.copy(
-            isBusyGettingResponse = true
-        )
-        when (textAction) {
-            is SearchOnlineTextAction -> {
-                val url =
-                    textAction.prefixUrl + URLEncoder.encode(
-                        uiStateFlow.value.text,
-                        "utf-8"
-                    )
-                mainThreadCoroutineScope.launch {
-                    uiEventFlow.emit(ViewExternally(url))
-                    uiStateFlow.value = uiStateFlow.value.copy(
-                        isActive = false
-                    )
-                }
-            }
-            is AiCompleteTextAction -> {
-                costEstimateJobOrNull?.cancel()
-                uiStateFlow.value = uiStateFlow.value.copy(
-                    estimateText = ""
+    private var actionRunJobOrNull: Job? = null
+
+    /**
+     * Depending on state of availability, run command and language model selection,
+     * this may be an actual transformation run, a dry run (cost estimate), or no operation.
+     */
+    private fun tryRunSelectedAction(isExplicitRunCommandPassed: Boolean) {
+        with(uiStateFlow.value) {
+            if (!isActive) return
+            if (isBusyGettingResponse) return
+            if (isBusyGettingTextFromScreenshot) return
+            if (isBusyGettingTextFromMicRecording) return
+        }
+        with(getSelectedTextAction()) {
+            val isActualRun =
+                isExplicitRunCommandPassed && uiStateFlow.value.isInstructionLanguageModelSelected
+            uiStateFlow.value = uiStateFlow.value.copy(
+                estimateText = if (isActualRun) "" else "computing cost ...",
+                isBusyGettingResponse = isActualRun,
+            )
+            actionRunJobOrNull?.cancel()
+            actionRunJobOrNull = backgroundCoroutineScope.launch {
+                val textBeforeAction = uiStateFlow.value.text
+                val runResult = aiTransformTextUseCase.execute(
+                    text = textBeforeAction,
+                    instructionLanguageModel = uiStateFlow.value.instructionLanguageModel,
+                    postfixInstruction = when (this@with) {
+                        is AiCompleteTextAction -> postfixInstruction
+                        is SearchOnlineTextAction -> aiPostfixInstruction
+                    },
+                    isDryRun = !isActualRun,
                 )
-                backgroundCoroutineScope.launch {
-                    val textBeforeAction = uiStateFlow.value.text
-                    val runResult = aiTransformTextUseCase.execute(
-                        text = textBeforeAction,
-                        instructionLanguageModel = uiStateFlow.value.instructionLanguageModel,
-                        postfixInstruction = textAction.postfixInstruction,
-                        isDryRun = !uiStateFlow.value.isInstructionLanguageModelSelected,
-                    )
-                    val textAfterAction = textBeforeAction.extendedWith(
-                        appendedText = runResult.resultText,
-                        isAppendedTextSeparated = textAction.isResultSeparated
-                    )
-                    mainThreadCoroutineScope.launch {
-                        uiEventFlow.emit(TextGenerated(textAfterAction))
-                        uiStateFlow.value = uiStateFlow.value.copy(
-                            isBusyGettingResponse = false,
-                            text = textAfterAction,
-                            estimateText = "~ ${runResult.estimatedCost.text}",
-                            actualCostText = "used: ${runResult.actualCost.text}",
+                val textAfterAction = if (isActualRun) {
+                    when (this@with) {
+                        is AiCompleteTextAction -> textBeforeAction.extendedWith(
+                            appendedText = runResult.resultText,
+                            isAppendedTextSeparated = isResultSeparated
                         )
+
+                        is SearchOnlineTextAction -> prefixUrl + withContext(Dispatchers.IO) {
+                            URLEncoder.encode(runResult.resultText, "utf-8")
+                        }
                     }
+                } else {
+                    textBeforeAction
+                }
+                if (!isActive) return@launch
+                mainThreadCoroutineScope.launch {
+                    uiEventFlow.emit(TextGenerated(textAfterAction))
+                    if (this@with is SearchOnlineTextAction) {
+                        uiEventFlow.emit(ViewExternally(textAfterAction))
+                    }
+                    uiStateFlow.value = uiStateFlow.value.copy(
+                        isActive = this@with !is SearchOnlineTextAction,
+                        isBusyGettingResponse = false,
+                        text = textAfterAction,
+                        estimateText = "~ ${runResult.estimatedCost.text}",
+                        actualCostText = if (isActualRun) {
+                            "used: ${runResult.actualCost.text}"
+                        } else {
+                            ""
+                        },
+                    )
                 }
             }
         }
+    }
+
+    fun onInputEnter() {
+        tryRunSelectedAction(isExplicitRunCommandPassed = true)
     }
 
     private fun String.extendedWith(
@@ -296,7 +300,7 @@ class AssistantViewModel constructor(
         uiStateFlow.value = uiStateFlow.value.copy(
             actionButtonSelectedIndex = buttonIndex
         )
-        onInputEnter()
+        tryRunSelectedAction(isExplicitRunCommandPassed = true)
     }
 
     fun onInstructionModelSelectMin() {
@@ -304,7 +308,7 @@ class AssistantViewModel constructor(
             isInstructionLanguageModelSelected = true,
             instructionLanguageModel = "Turbo",
         )
-        updateCostEstimate()
+        tryRunSelectedAction(isExplicitRunCommandPassed = false)
     }
 
     fun onInstructionModelSelectMedium() {
@@ -312,7 +316,7 @@ class AssistantViewModel constructor(
             isInstructionLanguageModelSelected = true,
             instructionLanguageModel = "DaVinci",
         )
-        updateCostEstimate()
+        tryRunSelectedAction(isExplicitRunCommandPassed = false)
     }
 
     fun onInstructionModelSelectMax() {
@@ -320,7 +324,7 @@ class AssistantViewModel constructor(
             isInstructionLanguageModelSelected = true,
             instructionLanguageModel = "GPT4",
         )
-        updateCostEstimate()
+        tryRunSelectedAction(isExplicitRunCommandPassed = false)
     }
 
     fun onInstructionModelUnselect() {
@@ -328,7 +332,7 @@ class AssistantViewModel constructor(
             isInstructionLanguageModelSelected = false,
             instructionLanguageModel = "Turbo", // for by-default cost estimates
         )
-        updateCostEstimate()
+        tryRunSelectedAction(isExplicitRunCommandPassed = false)
     }
 
     companion object {
@@ -338,15 +342,24 @@ class AssistantViewModel constructor(
         private val actionButtonModels = listOf(
             ActionButtonModel(
                 "YouTube", 0xFF4444,
-                SearchOnlineTextAction(prefixUrl = "https://www.youtube.com/results?search_query=")
+                SearchOnlineTextAction(
+                    aiPostfixInstruction = "\n\nMake a good search phrase for the text above:\n",
+                    prefixUrl = "https://www.youtube.com/results?search_query=",
+                )
             ),
             ActionButtonModel(
                 "W|Alpha", 0xFF7700,
-                SearchOnlineTextAction(prefixUrl = "https://www.wolframalpha.com/input?i=")
+                SearchOnlineTextAction(
+                    aiPostfixInstruction = "\n\nMake a good search phrase for the text above:\n",
+                    prefixUrl = "https://www.wolframalpha.com/input?i=",
+                )
             ),
             ActionButtonModel(
                 "Google", 0x77AAFF,
-                SearchOnlineTextAction(prefixUrl = "https://www.google.com/search?q=")
+                SearchOnlineTextAction(
+                    aiPostfixInstruction = "\n\nMake a good search phrase for the text above:\n",
+                    prefixUrl = "https://www.google.com/search?q=",
+                )
             ),
             ActionButtonModel(
                 "Answer", 0x44AA77,
