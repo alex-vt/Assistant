@@ -17,12 +17,13 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.window.Tray
-import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberTrayState
 import com.alexvt.assistant.ui.MainView
 import com.tulskiy.keymaster.common.Provider
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
+import moe.tlaster.precompose.PreComposeWindow
 import java.awt.Rectangle
 import java.awt.Toolkit
 import javax.swing.KeyStroke
@@ -42,7 +43,7 @@ fun main() = application {
     }
     if (isAppRunning.value) {
         if (isMainWindowShowing.value) {
-            Window(
+            PreComposeWindow(
                 onCloseRequest = ::exitApplication,
                 title = "Assistant",
                 undecorated = true,
@@ -86,7 +87,7 @@ fun main() = application {
                             }
                         }
                 ) {
-                    MainView(globalBounds.value)
+                    MainView(globalBounds.value, Dispatchers.Default)
                 }
             }
         }

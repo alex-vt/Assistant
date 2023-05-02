@@ -5,7 +5,7 @@ import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
 import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -14,19 +14,27 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
+import moe.tlaster.precompose.viewmodel.ViewModel
+import moe.tlaster.precompose.viewmodel.viewModelScope
 import java.net.URLEncoder
 import kotlin.math.max
 import kotlin.math.min
 
+class AssistantViewModelUseCases(
+    val aiTransformTextUseCase: AiTransformTextUseCase,
+    val extractTextFromImageUseCase: ExtractTextFromImageUseCase,
+    val aiTranscribeFromMicUseCase: AiTranscribeFromMicUseCase,
+    val aiTranscribeFromMicStopRecordingUseCase: AiTranscribeFromMicStopRecordingUseCase,
+)
+
 class AssistantViewModel constructor(
-    private val mainThreadCoroutineScope: CoroutineScope,
-    private val backgroundCoroutineScope: CoroutineScope,
-    private val aiTransformTextUseCase: AiTransformTextUseCase,
-    private val extractTextFromImageUseCase: ExtractTextFromImageUseCase,
-    private val aiTranscribeFromMicUseCase: AiTranscribeFromMicUseCase,
-    private val aiTranscribeFromMicStopRecordingUseCase: AiTranscribeFromMicStopRecordingUseCase,
-) {
+    private val useCases: AssistantViewModelUseCases,
+    backgroundDispatcher: CoroutineDispatcher,
+) : ViewModel() {
+    private val mainThreadCoroutineScope = viewModelScope
+    private val backgroundCoroutineScope = viewModelScope + backgroundDispatcher
 
     private val uiStateFlow: MutableStateFlow<UiState> = MutableStateFlow(initialUiState)
     private val uiEventFlow: MutableSharedFlow<UiEvent> = MutableSharedFlow()
@@ -82,7 +90,7 @@ class AssistantViewModel constructor(
         val textAction: TextAction
     )
 
-    fun clear() {
+    fun clearText() {
         uiStateFlow.value = uiStateFlow.value.copy(text = "")
         mainThreadCoroutineScope.launch {
             uiEventFlow.emit(TextGenerated(""))
@@ -114,7 +122,7 @@ class AssistantViewModel constructor(
     fun onMicButton() {
         val isRecording = uiStateFlow.value.isRecordingFromMic
         if (isRecording) {
-            aiTranscribeFromMicStopRecordingUseCase.execute()
+            useCases.aiTranscribeFromMicStopRecordingUseCase.execute()
             uiStateFlow.value = uiStateFlow.value.copy(
                 isRecordingFromMic = false,
                 isBusyGettingTextFromMicRecording = true,
@@ -124,7 +132,7 @@ class AssistantViewModel constructor(
                 isRecordingFromMic = true,
             )
             backgroundCoroutineScope.launch {
-                val transcriptionResponse = aiTranscribeFromMicUseCase.execute()
+                val transcriptionResponse = useCases.aiTranscribeFromMicUseCase.execute()
                 val textBeforeTranscription = uiStateFlow.value.text
                 val textAfterTranscription =
                     textBeforeTranscription.extendedWith(transcriptionResponse.text)
@@ -187,7 +195,7 @@ class AssistantViewModel constructor(
             val textBeforeAction = uiStateFlow.value.text
             val textAfterAction = textBeforeAction.extendedWith(
                 // screenshot coordinates are absolute: sum of local ones and window offset
-                appendedText = extractTextFromImageUseCase.execute(
+                appendedText = useCases.extractTextFromImageUseCase.execute(
                     uiStateFlow.value.screenshotRectTop + windowOffset.y.toInt(),
                     uiStateFlow.value.screenshotRectBottom + windowOffset.y.toInt(),
                     uiStateFlow.value.screenshotRectLeft + windowOffset.x.toInt(),
@@ -230,7 +238,7 @@ class AssistantViewModel constructor(
             actionRunJobOrNull?.cancel()
             actionRunJobOrNull = backgroundCoroutineScope.launch {
                 val textBeforeAction = uiStateFlow.value.text
-                val runResult = aiTransformTextUseCase.execute(
+                val runResult = useCases.aiTransformTextUseCase.execute(
                     text = textBeforeAction,
                     instructionLanguageModel = uiStateFlow.value.instructionLanguageModel,
                     postfixInstruction = when (this@with) {

@@ -27,20 +27,14 @@ kotlin {
             dependencies {
                 implementation(compose.ui)
                 implementation(compose.foundation)
+                implementation(compose.animation)
                 implementation(compose.material)
                 implementation(compose.materialIconsExtended)
                 implementation(compose.runtime)
 
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
-                implementation("androidx.compose.ui:ui:1.4.0-beta01")
-                implementation("androidx.compose.ui:ui-tooling:1.4.0-beta01")
-                implementation("androidx.compose.animation:animation:1.4.0-beta01")
-                implementation("androidx.compose.animation:animation-core:1.4.0-beta01")
-                implementation("androidx.compose.animation:animation-graphics:1.4.0-beta01")
-                implementation("androidx.compose.foundation:foundation:1.4.0-beta01")
-                implementation("androidx.compose.material:material:1.4.0-beta01")
+                api("moe.tlaster:precompose:1.3.15")
 
                 implementation("io.ktor:ktor-client-core:2.2.3")
                 implementation("io.ktor:ktor-client-cio:2.2.3")
@@ -78,7 +72,11 @@ kotlin {
 
         val desktopMain by getting {
             dependencies {
-                implementation(compose.desktop.currentOs)
+                implementation(compose.desktop.currentOs) {
+                    // prevent kotlinx.coroutines.internal.FastServiceLoader.loadProviders()
+                    // from loading Android version of Dispatchers.Main with higher priority than desktop
+                    exclude("org.jetbrains.kotlinx", "kotlinx-coroutines-android")
+                }
             }
         }
     }

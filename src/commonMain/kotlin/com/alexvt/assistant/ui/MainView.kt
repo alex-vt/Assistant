@@ -6,18 +6,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import com.alexvt.assistant.uitheme.AppTheme
+import kotlinx.coroutines.CoroutineDispatcher
 
 @ExperimentalComposeUiApi
 @Composable
 fun MainView(
-    globalBounds: Rect
+    globalBounds: Rect,
+    backgroundDispatcher: CoroutineDispatcher,
 ) {
 
     DisableSelection {
         MaterialTheme(
             colors = AppTheme.colors.material
         ) {
-            AssistantView(globalBounds)
+            AssistantView(globalBounds, backgroundDispatcher)
         }
     }
 }

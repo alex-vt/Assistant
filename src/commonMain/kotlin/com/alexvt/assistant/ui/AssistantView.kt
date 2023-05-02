@@ -33,7 +33,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -77,38 +76,36 @@ import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
 import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.plus
+import moe.tlaster.precompose.ui.viewModel
 
 @ExperimentalComposeUiApi
 @FlowPreview
 @Composable
-fun AssistantView(globalBounds: Rect) {
-    val mainThreadCoroutineScope = rememberCoroutineScope()
-    val backgroundCoroutineScope = rememberCoroutineScope() + Dispatchers.Default
+fun AssistantView(globalBounds: Rect, backgroundDispatcher: CoroutineDispatcher) {
     val credentialsRepository = CredentialsRepository()
     val soundRecordingRepository = SoundRecordingRepository()
-    val viewModel = remember {
-        AssistantViewModel(
-            mainThreadCoroutineScope,
-            backgroundCoroutineScope,
-            AiTransformTextUseCase(
-                listOf(
-                    AiTextCompleteCurieRepository(credentialsRepository),
-                    AiTextChatGptTurboRepository(credentialsRepository),
-                    AiTextCompleteDaVinciRepository(credentialsRepository),
-                    AiTextChatGpt4Repository(credentialsRepository),
-                )
-            ),
-            ExtractTextFromImageUseCase(ExtractableImageTextRepository()),
-            AiTranscribeFromMicUseCase(
-                soundRecordingRepository,
-                AiSpeechTranscriptionRepository(credentialsRepository)
-            ),
-            AiTranscribeFromMicStopRecordingUseCase(soundRecordingRepository)
-        )
+    val assistantViewModelUseCases = AssistantViewModelUseCases(
+        AiTransformTextUseCase(
+            listOf(
+                AiTextCompleteCurieRepository(credentialsRepository),
+                AiTextChatGptTurboRepository(credentialsRepository),
+                AiTextCompleteDaVinciRepository(credentialsRepository),
+                AiTextChatGpt4Repository(credentialsRepository),
+            )
+        ),
+        ExtractTextFromImageUseCase(ExtractableImageTextRepository()),
+        AiTranscribeFromMicUseCase(
+            soundRecordingRepository,
+            AiSpeechTranscriptionRepository(credentialsRepository)
+        ),
+        AiTranscribeFromMicStopRecordingUseCase(soundRecordingRepository)
+    )
+
+    val viewModel = viewModel(AssistantViewModel::class) {
+        AssistantViewModel(assistantViewModelUseCases, backgroundDispatcher)
     }
 
     val focusRequester = remember { FocusRequester() }
@@ -266,7 +263,7 @@ fun AssistantView(globalBounds: Rect) {
                                 contentDescription = "Clear",
                                 modifier = Modifier.padding(6.dp).size(20.dp)
                                     .clickable {
-                                        viewModel.clear()
+                                        viewModel.clearText()
                                     }
                             )
                             Spacer(modifier = Modifier.weight(1f))
