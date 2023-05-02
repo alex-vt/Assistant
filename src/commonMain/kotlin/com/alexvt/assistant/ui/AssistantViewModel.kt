@@ -71,6 +71,9 @@ class AssistantViewModel constructor(
         val isBusyGettingTextFromScreenshot: Boolean,
         val isRecordingFromMic: Boolean,
         val isBusyGettingTextFromMicRecording: Boolean,
+        val isShowingError: Boolean,
+        val errorTitle: String,
+        val errorDetails: String,
     )
 
     private sealed class TextAction
@@ -95,7 +98,10 @@ class AssistantViewModel constructor(
     )
 
     fun clearText() {
-        uiStateFlow.value = uiStateFlow.value.copy(text = "")
+        uiStateFlow.value = uiStateFlow.value.copy(
+            text = "",
+            isShowingError = false,
+        )
         mainThreadCoroutineScope.launch {
             uiEventFlow.emit(TextGenerated(""))
         }
@@ -106,6 +112,7 @@ class AssistantViewModel constructor(
             uiStateFlow.value = uiStateFlow.value.copy(
                 text = newText,
                 actualCostText = "",
+                isShowingError = false,
             )
             tryRunSelectedAction(isExplicitRunCommandPassed = false)
         }
@@ -134,6 +141,7 @@ class AssistantViewModel constructor(
         } else {
             uiStateFlow.value = uiStateFlow.value.copy(
                 isRecordingFromMic = true,
+                isShowingError = false,
             )
             backgroundCoroutineScope.launch {
                 val transcriptionResponse = useCases.aiTranscribeFromMicUseCase.execute()
@@ -155,6 +163,7 @@ class AssistantViewModel constructor(
     fun previewTakeScreenshot() {
         uiStateFlow.value = uiStateFlow.value.copy(
             isPreviewingScreenshot = true,
+            isShowingError = false,
         )
     }
 
@@ -238,6 +247,7 @@ class AssistantViewModel constructor(
             uiStateFlow.value = uiStateFlow.value.copy(
                 estimateText = if (isActualRun) "" else "computing cost ...",
                 isBusyGettingResponse = isActualRun,
+                isShowingError = false,
             )
             actionRunJobOrNull?.cancel()
             actionRunJobOrNull = backgroundCoroutineScope.launch {
@@ -265,6 +275,7 @@ class AssistantViewModel constructor(
                 } else {
                     textBeforeAction
                 }
+                val errorOrNull = runResult.status as? AiTransformTextUseCase.Status.Error
                 if (!isActive) return@launch
                 mainThreadCoroutineScope.launch {
                     uiEventFlow.emit(TextGenerated(textAfterAction))
@@ -281,6 +292,9 @@ class AssistantViewModel constructor(
                         } else {
                             ""
                         },
+                        isShowingError = errorOrNull != null,
+                        errorTitle = errorOrNull?.title ?: "",
+                        errorDetails = errorOrNull?.details ?: "",
                     )
                 }
             }
@@ -295,6 +309,7 @@ class AssistantViewModel constructor(
         appendedText: String,
         isAppendedTextSeparated: Boolean = true
     ): String {
+        if (appendedText.isEmpty()) return this
         val newTextSeparator =
             if (isAppendedTextSeparated) paragraphSeparator else emptyText
         return (trimEndIf(isAppendedTextSeparated) + newTextSeparator +
@@ -310,7 +325,7 @@ class AssistantViewModel constructor(
 
     fun onActionButtonClick(buttonIndex: Int) {
         uiStateFlow.value = uiStateFlow.value.copy(
-            actionButtonSelectedIndex = buttonIndex
+            actionButtonSelectedIndex = buttonIndex,
         )
         tryRunSelectedAction(isExplicitRunCommandPassed = true)
     }
@@ -425,6 +440,9 @@ class AssistantViewModel constructor(
             isBusyGettingTextFromScreenshot = false,
             isRecordingFromMic = false,
             isBusyGettingTextFromMicRecording = false,
+            isShowingError = false,
+            errorTitle = "",
+            errorDetails = "",
         )
     }
 }

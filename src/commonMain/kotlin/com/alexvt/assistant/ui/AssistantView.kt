@@ -278,6 +278,26 @@ fun AssistantView(
                                     }
                             )
                         }
+                        if (uiState.isShowingError) {
+                            Text(
+                                text = uiState.errorTitle,
+                                color = Color(0xFFFF9999),
+                                fontSize = 14.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xE0303030))
+                                    .padding(horizontal = 12.dp)
+                            )
+                            Text(
+                                text = uiState.errorDetails,
+                                color = Color(0xFFFF9999).copy(alpha = 0.8f),
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xE0303030))
+                                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                            )
+                        }
                     }
                     if (uiState.isBusyGettingResponse) {
                         Box(

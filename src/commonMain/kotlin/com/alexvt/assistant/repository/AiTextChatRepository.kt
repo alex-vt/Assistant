@@ -10,6 +10,7 @@ import io.ktor.client.plugins.plugin
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.serialization.JsonConvertException
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -50,7 +51,13 @@ abstract class AiTextChatRepository(private val credentialsRepository: Credentia
                     temperature,
                 )
             )
-        }.body<OpenAiChatResponseV1>()
+        }.run {
+            try {
+                body<OpenAiChatResponseV1>()
+            } catch (t: JsonConvertException) {
+                throw UnconvertedResponseException(responseAsText(), t)
+            }
+        }
         return Response(
             text = apiResponse.choices.joinToString { it.message.content },
             languageModel = model.label,
@@ -60,6 +67,8 @@ abstract class AiTextChatRepository(private val credentialsRepository: Credentia
             },
             computeUnitRequestCostUsd = model.usdPerRequestToken,
             computeUnitResponseCostUsd = model.usdPerResponseToken,
+            errorTitle = "",
+            errorText = "",
         )
     }
 

@@ -7,6 +7,10 @@ import com.alexvt.assistant.repository.AiTextCompleteCurieRepository
 import com.alexvt.assistant.repository.AiTextCompleteDaVinciRepository
 import com.alexvt.assistant.repository.AiTextRepository
 import com.alexvt.assistant.repository.AiTextRepository.Response
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.toList
 import me.tatarka.inject.annotations.Inject
 import java.math.MathContext
 
@@ -24,7 +28,13 @@ class AiTransformTextUseCase(
         val resultText: String,
         val estimatedCost: ComputeCost,
         val actualCost: ComputeCost,
+        val status: Status,
     )
+
+    sealed class Status {
+        object Success : Status()
+        data class Error(val title: String, val details: String) : Status()
+    }
 
     data class ComputeCost(
         val computeRounds: List<ComputeRound>,
@@ -78,7 +88,8 @@ class AiTransformTextUseCase(
             isDryRun,
             resultText = executionResponses.last().text, // the previous ones have partial results
             estimatedCost = simulatedResponses.totalCost(),
-            actualCost = if (isDryRun) zeroCost else executionResponses.totalCost()
+            actualCost = if (isDryRun) zeroCost else executionResponses.totalCost(),
+            status = executionResponses.getStatus(),
         )
     }
 
@@ -115,13 +126,23 @@ class AiTransformTextUseCase(
         }
         val textPartsToShorten =
             textWithoutInstruction.splitIntoOverlappingParts(shorteningRepository)
-        val shortenedTextPartResponses = textPartsToShorten.map { textPartWithoutInstruction ->
-            getSingleRoundResponse(
-                inputText = textPartWithoutInstruction + shorteningInstruction,
-                repository = shorteningRepository,
-                isDryRun,
-            )
-        }
+        // todo implement retry
+        // If an error occurs at one part shortening, next shortenings will be meaningless to do.
+        // For a list of parts takeWhile { no error } after map { to shortened part }
+        // will still shorten all parts and only afterwards start checking for errors.
+        // The list is converted to sequence (flow) to avoid the shortening rounds after an error.
+        val shortenedTextPartResponses = textPartsToShorten.asFlow() // no asSequence() for suspend
+            .map { textPartWithoutInstruction ->
+                getSingleRoundResponse(
+                    inputText = textPartWithoutInstruction + shorteningInstruction,
+                    repository = shorteningRepository,
+                    isDryRun,
+                )
+            }.takeWhile { shortenedTextPartResponse ->
+                shortenedTextPartResponse.errorTitle.isEmpty()
+            }.toList()
+        val isError = shortenedTextPartResponses.any { it.errorTitle.isNotEmpty() }
+        if (isError) return shortenedTextPartResponses
         return shortenedTextPartResponses + getResponsesForParts(
             textWithoutInstruction = shortenedTextPartResponses.joinToString(separator = "\n\n") {
                 it.text
@@ -192,6 +213,11 @@ class AiTransformTextUseCase(
         }
     }
 
+    private fun List<Response>.getStatus(): Status =
+        find { it.errorTitle.isNotEmpty() }?.run {
+            Status.Error(title = errorTitle, details = errorText)
+        } ?: Status.Success
+
     private fun List<Response>.totalCost(): ComputeCost {
         val computeRounds = map { it.computeCost().computeRounds }.flatten()
         return ComputeCost(
@@ -252,6 +278,8 @@ class AiTransformTextUseCase(
             computeUnitsInResponse = repository.getComputeUnitsResponseLimit(),
             computeUnitRequestCostUsd = repository.getComputeUnitRequestCostUsd(),
             computeUnitResponseCostUsd = repository.getComputeUnitResponseCostUsd(),
+            errorTitle = "",
+            errorText = "",
         )
 
 }
