@@ -1,5 +1,10 @@
 package com.alexvt.assistant.repository
 
+import com.alexvt.assistant.AppScope
+import me.tatarka.inject.annotations.Inject
+
+@AppScope
+@Inject
 class AiTextChatGptTurboRepository(credentialsRepository: CredentialsRepository) :
     AiTextChatRepository(credentialsRepository) {
 

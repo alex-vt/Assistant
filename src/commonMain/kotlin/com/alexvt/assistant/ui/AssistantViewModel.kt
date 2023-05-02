@@ -1,6 +1,7 @@
 package com.alexvt.assistant.ui
 
 import androidx.compose.ui.geometry.Offset
+import com.alexvt.assistant.AppScope
 import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
 import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
@@ -16,12 +17,15 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
+import me.tatarka.inject.annotations.Inject
 import moe.tlaster.precompose.viewmodel.ViewModel
 import moe.tlaster.precompose.viewmodel.viewModelScope
 import java.net.URLEncoder
 import kotlin.math.max
 import kotlin.math.min
 
+@AppScope
+@Inject
 class AssistantViewModelUseCases(
     val aiTransformTextUseCase: AiTransformTextUseCase,
     val extractTextFromImageUseCase: ExtractTextFromImageUseCase,

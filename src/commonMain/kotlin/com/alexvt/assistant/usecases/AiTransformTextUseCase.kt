@@ -1,11 +1,22 @@
 package com.alexvt.assistant.usecases
 
+import com.alexvt.assistant.AppScope
+import com.alexvt.assistant.repository.AiTextChatGpt4Repository
+import com.alexvt.assistant.repository.AiTextChatGptTurboRepository
+import com.alexvt.assistant.repository.AiTextCompleteCurieRepository
+import com.alexvt.assistant.repository.AiTextCompleteDaVinciRepository
 import com.alexvt.assistant.repository.AiTextRepository
 import com.alexvt.assistant.repository.AiTextRepository.Response
+import me.tatarka.inject.annotations.Inject
 import java.math.MathContext
 
+@AppScope
+@Inject
 class AiTransformTextUseCase(
-    private val repositories: List<AiTextRepository>,
+    private val aiTextCurieRepository: AiTextCompleteCurieRepository,
+    private val aiTextTurboRepository: AiTextChatGptTurboRepository,
+    private val aiTextDaVinciRepository: AiTextCompleteDaVinciRepository,
+    private val aiTextGpt4Repository: AiTextChatGpt4Repository,
 ) {
 
     data class TextTransformationResult(
@@ -36,7 +47,13 @@ class AiTransformTextUseCase(
         shorteningLanguageModel: String = "Turbo",
         isDryRun: Boolean,
     ): TextTransformationResult {
-        val availableLanguageModels = repositories.map { it.getLanguageModel() }
+        val aiTextRepositories = listOf(
+            aiTextCurieRepository,
+            aiTextTurboRepository,
+            aiTextDaVinciRepository,
+            aiTextGpt4Repository,
+        )
+        val availableLanguageModels = aiTextRepositories.map { it.getLanguageModel() }
         require(instructionLanguageModel in availableLanguageModels) {
             "Unknown language model: $instructionLanguageModel, available: $availableLanguageModels"
         }
@@ -44,9 +61,9 @@ class AiTransformTextUseCase(
             "Unknown language model: $instructionLanguageModel, available: $availableLanguageModels"
         }
         val instructionRepository =
-            repositories.first { it.getLanguageModel() == instructionLanguageModel }
+            aiTextRepositories.first { it.getLanguageModel() == instructionLanguageModel }
         val shorteningRepository =
-            repositories.first { it.getLanguageModel() == shorteningLanguageModel }
+            aiTextRepositories.first { it.getLanguageModel() == shorteningLanguageModel }
         val simulatedResponses = getResponsesForParts(
             text, postfixInstruction, instructionRepository,
             shorteningInstruction, shorteningRepository,

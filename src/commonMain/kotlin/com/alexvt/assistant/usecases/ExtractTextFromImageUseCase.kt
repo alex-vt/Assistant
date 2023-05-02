@@ -1,8 +1,12 @@
 package com.alexvt.assistant.usecases
 
+import com.alexvt.assistant.AppScope
 import com.alexvt.assistant.repository.ExtractableImageTextRepository
+import me.tatarka.inject.annotations.Inject
 import kotlin.math.abs
 
+@AppScope
+@Inject
 class ExtractTextFromImageUseCase(
     private val repository: ExtractableImageTextRepository,
 ) {

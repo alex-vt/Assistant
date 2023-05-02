@@ -5,12 +5,14 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Rect
+import com.alexvt.assistant.AppDependencies
 import com.alexvt.assistant.uitheme.AppTheme
 import kotlinx.coroutines.CoroutineDispatcher
 
 @ExperimentalComposeUiApi
 @Composable
 fun MainView(
+    dependencies: AppDependencies,
     globalBounds: Rect,
     backgroundDispatcher: CoroutineDispatcher,
 ) {
@@ -19,7 +21,7 @@ fun MainView(
         MaterialTheme(
             colors = AppTheme.colors.material
         ) {
-            AssistantView(globalBounds, backgroundDispatcher)
+            AssistantView(dependencies, globalBounds, backgroundDispatcher)
         }
     }
 }

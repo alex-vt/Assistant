@@ -7,6 +7,7 @@ plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
     kotlin("plugin.serialization")
+    id("com.google.devtools.ksp") version "1.8.0-1.0.8"
 }
 
 version = "1.0-SNAPSHOT"
@@ -32,9 +33,16 @@ kotlin {
                 implementation(compose.materialIconsExtended)
                 implementation(compose.runtime)
 
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+                implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.1")
+                configurations["ksp"].dependencies.add(
+                    project.dependencies.create(
+                        "me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.1"
+                    )
+                )
 
                 api("moe.tlaster:precompose:1.3.15")
+
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
                 implementation("io.ktor:ktor-client-core:2.2.3")
                 implementation("io.ktor:ktor-client-cio:2.2.3")
@@ -62,7 +70,10 @@ kotlin {
 
         val androidMain by getting {
             dependsOn(commonMain)
-            kotlin.srcDirs("src/jvmMain/kotlin")
+            kotlin.srcDirs(
+                "build/generated/ksp/android/androidDebug/kotlin",
+                "build/generated/ksp/android/androidRelease/kotlin",
+            )
             dependencies {
                 api("androidx.appcompat:appcompat:1.6.1")
                 api("androidx.core:core-ktx:1.9.0")
@@ -71,6 +82,10 @@ kotlin {
         }
 
         val desktopMain by getting {
+            dependsOn(commonMain)
+            kotlin.srcDirs(
+                "build/generated/ksp/desktop/desktopMain/kotlin",
+            )
             dependencies {
                 implementation(compose.desktop.currentOs) {
                     // prevent kotlinx.coroutines.internal.FastServiceLoader.loadProviders()
@@ -90,6 +105,10 @@ compose.desktop {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
+}
+
+tasks.withType<ProcessResources> {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 android {
@@ -129,6 +148,19 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    packagingOptions {
+        exclude("META-INF/DEPENDENCIES")
+        exclude("META-INF/LICENSE")
+        exclude("META-INF/LICENSE.txt")
+        exclude("META-INF/license.txt")
+        exclude("versionchanges.txt")
+        exclude("META-INF/NOTICE")
+        exclude("META-INF/NOTICE.txt")
+        exclude("META-INF/notice.txt")
+        exclude("META-INF/ASL2.0")
+        pickFirst("META-INF/*")
     }
 
     sourceSets {

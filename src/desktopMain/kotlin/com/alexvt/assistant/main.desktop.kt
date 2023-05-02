@@ -32,6 +32,7 @@ import javax.swing.KeyStroke
 @FlowPreview
 @ExperimentalComposeUiApi
 fun main() = application {
+    val dependencies: AppDependencies = remember { AppDependencies::class.create() }
     val isAppRunning = remember { mutableStateOf(true) }
     val isMainWindowShowing = remember { mutableStateOf(true) } // todo false on prod
     val globalHotkeyProvider = remember {
@@ -87,7 +88,7 @@ fun main() = application {
                             }
                         }
                 ) {
-                    MainView(globalBounds.value, Dispatchers.Default)
+                    MainView(dependencies, globalBounds.value, Dispatchers.Default)
                 }
             }
         }

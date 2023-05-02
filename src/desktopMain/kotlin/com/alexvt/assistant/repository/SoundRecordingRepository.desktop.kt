@@ -1,16 +1,20 @@
 package com.alexvt.assistant.repository
 
 import java.io.File
-import javax.sound.sampled.*
+import javax.sound.sampled.AudioFileFormat
+import javax.sound.sampled.AudioFormat
+import javax.sound.sampled.AudioInputStream
+import javax.sound.sampled.AudioSystem
+import javax.sound.sampled.DataLine
+import javax.sound.sampled.TargetDataLine
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-
-class SoundRecordingRepository {
+actual class SoundRecordingRepository {
 
     private var lineOrNull: TargetDataLine? = null
 
-    suspend fun getRecordingFromMic(): ByteArray =
+    actual suspend fun getRecordingFromMic(): ByteArray =
         suspendCoroutine { continuation ->
             recordBlocking() // until finishRecording()
             continuation.resume(getAndResetRecording())
@@ -35,7 +39,7 @@ class SoundRecordingRepository {
         println("Finished recording")
     }
 
-    fun finishRecording() {
+    actual fun finishRecording() {
         lineOrNull?.stop()
         lineOrNull?.close()
     }

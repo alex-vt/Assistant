@@ -61,21 +61,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alexvt.assistant.AppDependencies
 import com.alexvt.assistant.platform.openLinkInChrome
-import com.alexvt.assistant.repository.AiSpeechTranscriptionRepository
-import com.alexvt.assistant.repository.AiTextChatGpt4Repository
-import com.alexvt.assistant.repository.AiTextChatGptTurboRepository
-import com.alexvt.assistant.repository.AiTextCompleteCurieRepository
-import com.alexvt.assistant.repository.AiTextCompleteDaVinciRepository
-import com.alexvt.assistant.repository.CredentialsRepository
-import com.alexvt.assistant.repository.ExtractableImageTextRepository
-import com.alexvt.assistant.repository.SoundRecordingRepository
 import com.alexvt.assistant.uicustomizations.BasicTextFieldWithScrollbar
 import com.alexvt.assistant.uitheme.Fonts
-import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
-import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
-import com.alexvt.assistant.usecases.AiTransformTextUseCase
-import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
@@ -84,28 +73,13 @@ import moe.tlaster.precompose.ui.viewModel
 @ExperimentalComposeUiApi
 @FlowPreview
 @Composable
-fun AssistantView(globalBounds: Rect, backgroundDispatcher: CoroutineDispatcher) {
-    val credentialsRepository = CredentialsRepository()
-    val soundRecordingRepository = SoundRecordingRepository()
-    val assistantViewModelUseCases = AssistantViewModelUseCases(
-        AiTransformTextUseCase(
-            listOf(
-                AiTextCompleteCurieRepository(credentialsRepository),
-                AiTextChatGptTurboRepository(credentialsRepository),
-                AiTextCompleteDaVinciRepository(credentialsRepository),
-                AiTextChatGpt4Repository(credentialsRepository),
-            )
-        ),
-        ExtractTextFromImageUseCase(ExtractableImageTextRepository()),
-        AiTranscribeFromMicUseCase(
-            soundRecordingRepository,
-            AiSpeechTranscriptionRepository(credentialsRepository)
-        ),
-        AiTranscribeFromMicStopRecordingUseCase(soundRecordingRepository)
-    )
-
+fun AssistantView(
+    dependencies: AppDependencies,
+    globalBounds: Rect,
+    backgroundDispatcher: CoroutineDispatcher,
+) {
     val viewModel = viewModel(AssistantViewModel::class) {
-        AssistantViewModel(assistantViewModelUseCases, backgroundDispatcher)
+        AssistantViewModel(dependencies.assistantViewModelUseCases, backgroundDispatcher)
     }
 
     val focusRequester = remember { FocusRequester() }
