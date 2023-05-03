@@ -14,6 +14,9 @@ actual class SoundRecordingRepository {
 
     private var lineOrNull: TargetDataLine? = null
 
+    actual fun isMicAvailable(): Boolean =
+        getLineOrNull() != null
+
     actual suspend fun getRecordingFromMic(): ByteArray =
         suspendCoroutine { continuation ->
             recordBlocking() // until finishRecording()
@@ -21,13 +24,9 @@ actual class SoundRecordingRepository {
         }
 
     private fun recordBlocking() {
-        val whisperWavFormat = AudioFormat(16000.0f, 16, 1, true, false)
+        lineOrNull = getLineOrNull()
 
-        lineOrNull = AudioSystem.getLine(
-            DataLine.Info(TargetDataLine::class.java, whisperWavFormat)
-        ) as TargetDataLine
-
-        lineOrNull?.open(whisperWavFormat)
+        lineOrNull?.open(getWhisperCompatibleAudioFormat())
         lineOrNull?.start()
         println("Started recording")
 
@@ -38,6 +37,14 @@ actual class SoundRecordingRepository {
         )
         println("Finished recording")
     }
+
+    private fun getWhisperCompatibleAudioFormat(): AudioFormat =
+        AudioFormat(16000.0f, 16, 1, true, false)
+
+    private fun getLineOrNull(): TargetDataLine? =
+        AudioSystem.getLine(
+            DataLine.Info(TargetDataLine::class.java, getWhisperCompatibleAudioFormat())
+        ) as? TargetDataLine
 
     actual fun finishRecording() {
         lineOrNull?.stop()

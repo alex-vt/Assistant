@@ -217,20 +217,32 @@ capability._
 
 ### Text dictation
 
-When the microphone button is pressed, Assistant starts recording voice from the default microphone. 
+When the microphone button is pressed, Assistant starts recording voice from the default microphone`*`. 
 The microphone button is red when recording. Press it again to finish. 
 
 Assistant gets the dictated text using OpenAI speech-to-text Whisper model, and adds the dictated text in the end of the text input form. 
 
 #### Duration and cost estimates for text dictation:
 
-| Costs \ Duration          | 1 minute     | 12.5 minutes (max) |
-|---------------------------|--------------|--------------------|
-| OpenAI Whisper model name | `large-v2`   | `large-v2`         |
-| Cost estimate             | 0.006 USD`*` | 0.075 USD          |
-| Data usage (uploads)      | 2 MB         | 25 MB`*`           |
+| Costs \ Duration          | 1 minute       | 12.5 minutes (max) |
+|---------------------------|----------------|--------------------|
+| OpenAI Whisper model name | `large-v2`     | `large-v2`         |
+| Cost estimate             | 0.006 USD`**`  | 0.075 USD          |
+| Data usage (uploads)      | 2 MB           | 25 MB`**`          |
 
->`* Primary source of data for recording per-minute cost and max size: OpenAI.`
+>`* If no microphone detected, the microphone button will be hidden. Reopen Assistant to detect again.`
+
+>`** Primary source of data for recording per-minute cost and max size: OpenAI.`
+
+### Capturing text from screen
+
+Click the screenshot button or `Ctrl`+`PrintScreen` to view your screen capture.
+Select a rectangular area with text of interest by clicking and dragging. 
+Text from that area will be put in the end of the text input form.
+
+Text capturing uses offline free software`*`. For convenience, Assistant will hide its window and surround the screenshot with a border. 
+
+>`* See Optional section below. If the optional software is unavailable, the screenshot button will be hidden. Reopen Assistant window to recheck availability.`
 
 
 ## Running the app
@@ -240,7 +252,10 @@ Assistant gets the dictated text using OpenAI speech-to-text Whisper model, and 
 Requirements:
 
 * Java
-* tesseract-ocr (for capturing text from screen)
+
+Optional:
+
+* `tesseract-ocr` package installed, for capturing text from screen. Assistant checks if `/usr/share/tesseract-ocr/5/tessdata` directory exists.
 
 Initial config:
 

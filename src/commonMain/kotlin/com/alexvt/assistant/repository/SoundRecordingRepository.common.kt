@@ -7,6 +7,8 @@ import me.tatarka.inject.annotations.Inject
 @Inject
 expect class SoundRecordingRepository() {
 
+    fun isMicAvailable(): Boolean
+
     suspend fun getRecordingFromMic(): ByteArray
 
     fun finishRecording()

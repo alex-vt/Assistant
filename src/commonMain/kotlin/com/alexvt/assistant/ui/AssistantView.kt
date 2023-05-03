@@ -255,28 +255,32 @@ fun AssistantView(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                                 )
                             }
-                            Icon(
-                                Icons.Default.Mic,
-                                tint = if (uiState.isRecordingFromMic) {
-                                    Color(0xFFFF7777)
-                                } else {
-                                    Color(0xFFFFFFFF).copy(alpha = 0.6f)
-                                },
-                                contentDescription = "From voice recording",
-                                modifier = Modifier.padding(6.dp).size(20.dp)
-                                    .clickable {
-                                        viewModel.onMicButton()
-                                    }
-                            )
-                            Icon(
-                                Icons.Default.Screenshot,
-                                tint = Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                                contentDescription = "From screen",
-                                modifier = Modifier.padding(6.dp).size(20.dp)
-                                    .clickable {
-                                        viewModel.previewTakeScreenshot()
-                                    }
-                            )
+                            if (uiState.isMicButtonVisible) {
+                                Icon(
+                                    Icons.Default.Mic,
+                                    tint = if (uiState.isRecordingFromMic) {
+                                        Color(0xFFFF7777)
+                                    } else {
+                                        Color(0xFFFFFFFF).copy(alpha = 0.6f)
+                                    },
+                                    contentDescription = "From voice recording",
+                                    modifier = Modifier.padding(6.dp).size(20.dp)
+                                        .clickable {
+                                            viewModel.onMicButton()
+                                        }
+                                )
+                            }
+                            if (uiState.isScreenshotButtonVisible) {
+                                Icon(
+                                    Icons.Default.Screenshot,
+                                    tint = Color(0xFFFFFFFF).copy(alpha = 0.6f),
+                                    contentDescription = "From screen",
+                                    modifier = Modifier.padding(6.dp).size(20.dp)
+                                        .clickable {
+                                            viewModel.previewTakeScreenshot()
+                                        }
+                                )
+                            }
                         }
                         if (uiState.isShowingError) {
                             Text(

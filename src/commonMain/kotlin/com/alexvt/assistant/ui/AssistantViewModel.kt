@@ -5,6 +5,8 @@ import com.alexvt.assistant.AppScope
 import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
 import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
+import com.alexvt.assistant.usecases.CheckMicAvailabilityUseCase
+import com.alexvt.assistant.usecases.CheckTextFromScreenAvailabilityUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +15,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
@@ -28,7 +32,9 @@ import kotlin.math.min
 @Inject
 class AssistantViewModelUseCases(
     val aiTransformTextUseCase: AiTransformTextUseCase,
+    val checkTextFromScreenAvailabilityUseCase: CheckTextFromScreenAvailabilityUseCase,
     val extractTextFromImageUseCase: ExtractTextFromImageUseCase,
+    val checkMicAvailabilityUseCase: CheckMicAvailabilityUseCase,
     val aiTranscribeFromMicUseCase: AiTranscribeFromMicUseCase,
     val aiTranscribeFromMicStopRecordingUseCase: AiTranscribeFromMicStopRecordingUseCase,
 )
@@ -42,6 +48,19 @@ class AssistantViewModel constructor(
 
     private val uiStateFlow: MutableStateFlow<UiState> = MutableStateFlow(initialUiState)
     private val uiEventFlow: MutableSharedFlow<UiEvent> = MutableSharedFlow()
+
+    init {
+        // text-from-other-media features availability is updated when window is opened
+        backgroundCoroutineScope.launch {
+            uiStateFlow.onSubscription {
+                uiStateFlow.value = uiStateFlow.value.copy(
+                    isScreenshotButtonVisible = useCases.checkTextFromScreenAvailabilityUseCase
+                        .execute(),
+                    isMicButtonVisible = useCases.checkMicAvailabilityUseCase.execute(),
+                )
+            }.collect()
+        }
+    }
 
     fun getUiStateFlow(): StateFlow<UiState> =
         uiStateFlow
@@ -60,6 +79,7 @@ class AssistantViewModel constructor(
         val text: String,
         val estimateText: String,
         val actualCostText: String,
+        val isScreenshotButtonVisible: Boolean,
         val isPreviewingScreenshot: Boolean,
         val isPickingScreenshot: Boolean,
         val screenshotStartX: Int,
@@ -69,6 +89,7 @@ class AssistantViewModel constructor(
         val screenshotRectLeft: Int,
         val screenshotRectRight: Int,
         val isBusyGettingTextFromScreenshot: Boolean,
+        val isMicButtonVisible: Boolean,
         val isRecordingFromMic: Boolean,
         val isBusyGettingTextFromMicRecording: Boolean,
         val isShowingError: Boolean,
@@ -429,6 +450,7 @@ class AssistantViewModel constructor(
             text = "",
             estimateText = "",
             actualCostText = "",
+            isScreenshotButtonVisible = false,
             isPreviewingScreenshot = false,
             isPickingScreenshot = false,
             screenshotStartX = 0,
@@ -438,6 +460,7 @@ class AssistantViewModel constructor(
             screenshotRectLeft = 0,
             screenshotRectRight = 0,
             isBusyGettingTextFromScreenshot = false,
+            isMicButtonVisible = false,
             isRecordingFromMic = false,
             isBusyGettingTextFromMicRecording = false,
             isShowingError = false,
