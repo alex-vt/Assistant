@@ -9,13 +9,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.useResource
 import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberTrayState
@@ -51,14 +49,7 @@ fun main() = application {
                 transparent = true,
                 resizable = false,
                 //alwaysOnTop = true,
-                icon = object : Painter() {
-                    override val intrinsicSize = Size(256f, 256f)
-
-                    override fun DrawScope.onDraw() {
-                        drawOval(Color(0xAA00FF77), Offset(0f, 0f), Size(size.width, size.height))
-                    }
-                },
-                //BitmapPainter(useResource("ic_launcher.png", ::loadImageBitmap)),
+                icon = BitmapPainter(useResource("app_icon.png", ::loadImageBitmap)),
             ) {
                 val globalBounds = remember { mutableStateOf(Rect(0f, 0f, 0f, 0f)) }
                 Box(
@@ -96,17 +87,7 @@ fun main() = application {
         val trayState = rememberTrayState()
         Tray(
             state = trayState,
-            icon = object : Painter() { // todo alpha background
-                override val intrinsicSize = Size(256f, 256f)
-
-                override fun DrawScope.onDraw() {
-                    drawOval(
-                        Color(0x77FFFF77),
-                        Offset(64f, 64f),
-                        Size(size.width / 2, size.height / 2)
-                    )
-                }
-            },
+            icon = BitmapPainter(useResource("app_icon.png", ::loadImageBitmap)),
             menu = {
                 Item(
                     "Show Assistant",
