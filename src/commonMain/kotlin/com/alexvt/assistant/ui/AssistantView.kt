@@ -63,7 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alexvt.assistant.AppDependencies
 import com.alexvt.assistant.platform.openLinkInChrome
-import com.alexvt.assistant.uicustomizations.BasicTextFieldWithScrollbar
+import com.alexvt.assistant.uicustomizations.BasicTextFieldWithBestEffortScrollbar
 import com.alexvt.assistant.uitheme.Fonts
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.FlowPreview
@@ -171,7 +171,7 @@ fun AssistantView(
                     Column {
                         Surface {
                             // standard BasicTextField instead would have no scrollbar
-                            BasicTextFieldWithScrollbar(
+                            BasicTextFieldWithBestEffortScrollbar(
                                 value = textFieldValue.value,
                                 onValueChange = { newTextFieldValue ->
                                     textFieldValue.value = newTextFieldValue
