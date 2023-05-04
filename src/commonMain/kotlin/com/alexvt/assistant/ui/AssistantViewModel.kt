@@ -299,12 +299,16 @@ class AssistantViewModel constructor(
                 val errorOrNull = runResult.status as? AiTransformTextUseCase.Status.Error
                 if (!isActive) return@launch
                 mainThreadCoroutineScope.launch {
-                    uiEventFlow.emit(TextGenerated(textAfterAction))
-                    if (this@with is SearchOnlineTextAction) {
+                    if (isActualRun) {
+                        uiEventFlow.emit(TextGenerated(textAfterAction))
+                    }
+                    val isExternalSearchLaunching =
+                        this@with is SearchOnlineTextAction && isActualRun
+                    if (isExternalSearchLaunching) {
                         uiEventFlow.emit(ViewExternally(textAfterAction))
                     }
                     uiStateFlow.value = uiStateFlow.value.copy(
-                        isActive = this@with !is SearchOnlineTextAction,
+                        isActive = !isExternalSearchLaunching,
                         isBusyGettingResponse = false,
                         text = textAfterAction,
                         estimateText = "~ ${runResult.estimatedCost.text}",

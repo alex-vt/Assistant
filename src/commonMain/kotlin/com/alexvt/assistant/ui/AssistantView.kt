@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.LocalTextStyle
@@ -25,14 +26,22 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.OndemandVideo
+import androidx.compose.material.icons.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.QuestionAnswer
+import androidx.compose.material.icons.filled.RestorePage
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Screenshot
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -56,6 +65,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
@@ -81,12 +91,18 @@ fun AssistantView(
     val viewModel = viewModel(AssistantViewModel::class) {
         AssistantViewModel(dependencies.assistantViewModelUseCases, backgroundDispatcher)
     }
+    val uiState by viewModel.getUiStateFlow().collectAsState()
 
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
-    val textFieldValue = remember { mutableStateOf(TextFieldValue(text = "")) }
+    var textFieldValue by remember {
+        mutableStateOf(
+            TextFieldValue(text = uiState.text, selection = TextRange(uiState.text.length))
+        )
+    }
+    val density = LocalDensity.current.density
 
     LaunchedEffect(Unit) {
         launch {
@@ -97,10 +113,10 @@ fun AssistantView(
                     }
 
                     is AssistantViewModel.TextGenerated -> {
-                        textFieldValue.value =
+                        textFieldValue =
                             TextFieldValue(
                                 text = event.text,
-                                selection = TextRange(event.text.length)
+                                selection = TextRange(event.text.length),
                             )
                         focusRequester.requestFocus()
                     }
@@ -108,8 +124,6 @@ fun AssistantView(
             }
         }
     }
-
-    val uiState by viewModel.getUiStateFlow().collectAsState()
 
     if (uiState.isActive) {
         Box(
@@ -152,8 +166,8 @@ fun AssistantView(
                     awaitPointerEventScope {
                         while (uiState.isActive) { // todo dispose obsolete
                             val event = awaitPointerEvent()
-                            val x = event.changes.first().position.x.toInt()
-                            val y = event.changes.first().position.y.toInt()
+                            val x = (event.changes.first().position.x / density).toInt()
+                            val y = (event.changes.first().position.y / density).toInt()
                             if (event.changes.first().changedToUp()) {
                                 viewModel.onFreeAreaPointerRelease(x, y, globalBounds.topLeft)
                             } else if (event.changes.first().changedToDown()) {
@@ -167,15 +181,19 @@ fun AssistantView(
                 .border(BorderStroke(1.dp, SolidColor(Color(0xFF00FF88))))
         ) {
             if (!uiState.isPreviewingScreenshot && !uiState.isPickingScreenshot) {
-                Box(Modifier.width(800.dp)) { // todo wrap action buttons better
-                    Column {
-                        Surface {
+                Box(Modifier.heightIn(max = 566.dp).widthIn(max = 798.dp)) {
+                    Column(
+                        Modifier.fillMaxWidth()
+                    ) {
+                        Surface(
+                            Modifier.weight(1f, fill = false).fillMaxWidth()
+                        ) {
                             // standard BasicTextField instead would have no scrollbar
                             BasicTextFieldWithBestEffortScrollbar(
-                                value = textFieldValue.value,
+                                value = textFieldValue,
                                 onValueChange = { newTextFieldValue ->
-                                    textFieldValue.value = newTextFieldValue
                                     viewModel.onTextChanged(newTextFieldValue.text)
+                                    textFieldValue = newTextFieldValue
                                 },
                                 cursorBrush = SolidColor(Color(0xFFFFFFFF)),
                                 textStyle = LocalTextStyle.current.copy(
@@ -186,28 +204,72 @@ fun AssistantView(
                                 ),
                                 modifier = Modifier
                                     .focusRequester(focusRequester)
-                                    .heightIn(10.dp, 540.dp)
                                     .fillMaxWidth()
                                     .padding(12.dp)
                             )
                         }
-                        Row(
+                        Box(
                             Modifier
                                 .fillMaxWidth()
                                 .background(Color(0xE0303030))
                                 .height(36.dp)
-                                .padding(horizontal = 6.dp)
-                                .align(Alignment.CenterHorizontally)
+                                .padding(start = 6.dp, end = 6.dp, top = 6.dp, bottom = 2.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Spacer(modifier = Modifier.weight(1f))
                             ActionButtons(
-                                uiState.actionButtonNames,
-                                uiState.actionIconTints,
+                                actionButtons = uiState.actionButtonNames.run {
+                                    val actionIconMap = mapOf(
+                                        "YouTube" to ActionButton(
+                                            text = "YouTube",
+                                            icon = Icons.Default.OndemandVideo,
+                                            iconTint = uiState.actionIconTints[0],
+                                            isAlwaysShown = true,
+                                        ),
+                                        "W|Alpha" to ActionButton(
+                                            text = "W|Alpha",
+                                            icon = Icons.Default.Science,
+                                            iconTint = uiState.actionIconTints[1],
+                                            isAlwaysShown = true,
+                                        ),
+                                        "Google" to ActionButton(
+                                            text = "Google",
+                                            icon = Icons.Default.Search,
+                                            iconTint = uiState.actionIconTints[2],
+                                            isAlwaysShown = true,
+                                        ),
+                                        "Answer" to ActionButton(
+                                            text = "Answer",
+                                            icon = Icons.Default.QuestionAnswer,
+                                            iconTint = uiState.actionIconTints[3],
+                                            isAlwaysShown = true,
+                                        ),
+                                        "Summary" to ActionButton(
+                                            text = "Summary",
+                                            icon = Icons.Default.List,
+                                            iconTint = uiState.actionIconTints[4],
+                                            isAlwaysShown = true,
+                                        ),
+                                        "Rewrite" to ActionButton(
+                                            text = "Rewrite",
+                                            icon = Icons.Default.RestorePage,
+                                            iconTint = uiState.actionIconTints[5],
+                                            isAlwaysShown = false,
+                                        ),
+                                        "Continue" to ActionButton(
+                                            text = "Continue",
+                                            icon = Icons.Default.PlaylistPlay,
+                                            iconTint = uiState.actionIconTints[6],
+                                            isAlwaysShown = true,
+                                        ),
+                                    )
+                                    map { name ->
+                                        actionIconMap.getValue(name)
+                                    }
+                                },
                                 selectedIndex = uiState.actionButtonSelectedIndex,
                             ) { index ->
                                 viewModel.onActionButtonClick(index)
                             }
-                            Spacer(modifier = Modifier.weight(1f))
                         }
                         Row(
                             Modifier
