@@ -70,7 +70,6 @@ class AssistantViewModel constructor(
 
     data class UiState(
         val isActive: Boolean,
-        val isInstructionLanguageModelSelected: Boolean,
         val instructionLanguageModel: String,
         val actionButtonNames: List<String>,
         val actionIconTints: List<Int>,
@@ -135,7 +134,7 @@ class AssistantViewModel constructor(
                 actualCostText = "",
                 isShowingError = false,
             )
-            tryRunSelectedAction(isExplicitRunCommandPassed = false)
+            tryRunSelectedAction(isActualRun = false)
         }
     }
 
@@ -255,7 +254,7 @@ class AssistantViewModel constructor(
      * Depending on state of availability, run command and language model selection,
      * this may be an actual transformation run, a dry run (cost estimate), or no operation.
      */
-    private fun tryRunSelectedAction(isExplicitRunCommandPassed: Boolean) {
+    private fun tryRunSelectedAction(isActualRun: Boolean) {
         with(uiStateFlow.value) {
             if (!isActive) return
             if (isBusyGettingResponse) return
@@ -263,8 +262,6 @@ class AssistantViewModel constructor(
             if (isBusyGettingTextFromMicRecording) return
         }
         with(getSelectedTextAction()) {
-            val isActualRun =
-                isExplicitRunCommandPassed && uiStateFlow.value.isInstructionLanguageModelSelected
             uiStateFlow.value = uiStateFlow.value.copy(
                 estimateText = if (isActualRun) "" else "computing cost ...",
                 isBusyGettingResponse = isActualRun,
@@ -327,7 +324,7 @@ class AssistantViewModel constructor(
     }
 
     fun onInputEnter() {
-        tryRunSelectedAction(isExplicitRunCommandPassed = true)
+        tryRunSelectedAction(isActualRun = true)
     }
 
     private fun String.extendedWith(
@@ -348,43 +345,39 @@ class AssistantViewModel constructor(
     private fun String.trimEndIf(condition: Boolean): String =
         if (condition) trimEnd() else this
 
-    fun onActionButtonClick(buttonIndex: Int) {
+    fun onActionButton(buttonIndex: Int, isClick: Boolean) {
         uiStateFlow.value = uiStateFlow.value.copy(
             actionButtonSelectedIndex = buttonIndex,
         )
-        tryRunSelectedAction(isExplicitRunCommandPassed = true)
+        tryRunSelectedAction(isActualRun = isClick)
     }
 
     fun onInstructionModelSelectMin() {
         uiStateFlow.value = uiStateFlow.value.copy(
-            isInstructionLanguageModelSelected = true,
             instructionLanguageModel = "Turbo",
         )
-        tryRunSelectedAction(isExplicitRunCommandPassed = false)
+        tryRunSelectedAction(isActualRun = false)
     }
 
     fun onInstructionModelSelectMedium() {
         uiStateFlow.value = uiStateFlow.value.copy(
-            isInstructionLanguageModelSelected = true,
             instructionLanguageModel = "DaVinci",
         )
-        tryRunSelectedAction(isExplicitRunCommandPassed = false)
+        tryRunSelectedAction(isActualRun = false)
     }
 
     fun onInstructionModelSelectMax() {
         uiStateFlow.value = uiStateFlow.value.copy(
-            isInstructionLanguageModelSelected = true,
             instructionLanguageModel = "GPT4",
         )
-        tryRunSelectedAction(isExplicitRunCommandPassed = false)
+        tryRunSelectedAction(isActualRun = false)
     }
 
     fun onInstructionModelUnselect() {
         uiStateFlow.value = uiStateFlow.value.copy(
-            isInstructionLanguageModelSelected = false,
             instructionLanguageModel = "Turbo", // for by-default cost estimates
         )
-        tryRunSelectedAction(isExplicitRunCommandPassed = false)
+        tryRunSelectedAction(isActualRun = false)
     }
 
     companion object {
@@ -446,7 +439,6 @@ class AssistantViewModel constructor(
         private val initialUiState = UiState(
             isActive = true,
             instructionLanguageModel = "Turbo",
-            isInstructionLanguageModelSelected = false,
             actionButtonNames = actionButtonModels.map { it.title },
             actionIconTints = actionButtonModels.map { it.iconTint },
             actionButtonSelectedIndex = defaultSelectedActionIndex,

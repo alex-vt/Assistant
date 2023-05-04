@@ -143,16 +143,22 @@ fun AssistantView(
                     }
                     // other keys
                     if (it.type == KeyEventType.KeyDown) {
+                        val isAction = it.isShiftPressed || it.isCtrlPressed
                         when (it.key) {
                             Key.Escape -> viewModel.onEscape()
-                            Key.F1 -> viewModel.onActionButtonClick(buttonIndex = 0)
-                            Key.F2 -> viewModel.onActionButtonClick(buttonIndex = 1)
-                            Key.F3 -> viewModel.onActionButtonClick(buttonIndex = 2)
-                            Key.F4 -> viewModel.onActionButtonClick(buttonIndex = 3)
-                            Key.F5 -> viewModel.onActionButtonClick(buttonIndex = 4)
-                            Key.F6 -> viewModel.onActionButtonClick(buttonIndex = 5)
-                            Key.F7 -> viewModel.onActionButtonClick(buttonIndex = 6)
-                            Key.Enter -> viewModel.onInputEnter()
+                            Key.F1 -> viewModel.onActionButton(buttonIndex = 0, isClick = isAction)
+                            Key.F2 -> viewModel.onActionButton(buttonIndex = 1, isClick = isAction)
+                            Key.F3 -> viewModel.onActionButton(buttonIndex = 2, isClick = isAction)
+                            Key.F4 -> viewModel.onActionButton(buttonIndex = 3, isClick = isAction)
+                            Key.F5 -> viewModel.onActionButton(buttonIndex = 4, isClick = isAction)
+                            Key.F6 -> viewModel.onActionButton(buttonIndex = 5, isClick = isAction)
+                            Key.F7 -> viewModel.onActionButton(buttonIndex = 6, isClick = isAction)
+                            Key.Enter -> {
+                                if (isAction) {
+                                    viewModel.onInputEnter()
+                                }
+                            }
+
                             Key.PrintScreen -> {
                                 if (it.isCtrlPressed) {
                                     viewModel.previewTakeScreenshot()
@@ -268,7 +274,7 @@ fun AssistantView(
                                 },
                                 selectedIndex = uiState.actionButtonSelectedIndex,
                             ) { index ->
-                                viewModel.onActionButtonClick(index)
+                                viewModel.onActionButton(index, isClick = true)
                             }
                         }
                         Row(

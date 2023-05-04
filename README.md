@@ -15,7 +15,7 @@ A quick access popup window for advanced operations on text.
 
 * App stays in background in tray
 * `Meta`+`Space`: **open/close** assistant window
-* `F1`..`F7` or action button: **select action** on text
+* `F1`..`F7`: **select action** on text, click action: run it
 * `Ctrl`+`Enter`: **perform** selected **action** on text and put the result below
 * `Ctrl`+`PrintScreen`, or screen capture button: select screen area to **capture text** from
 
@@ -26,6 +26,17 @@ Estimated cost of action updates below continuously. Actual cost shows after act
 Prefer a more capable language model? Use `Shift` - see the reference below.
 
 ## Usage reference
+
+### Buttons
+
+| Action \ Button | Press                                              |
+|-----------------|----------------------------------------------------|
+| Action buttons  | Select action to do with text in input form        |
+| Clear           | Delete text from input form                        |
+| Mic             | Use microphone to dictate text (see section below) |
+| Screenshot      | Pick text from screen (see section below)          |
+
+For usage with keyboard shortcuts, see Usage summary with modifier keys below.
 
 ### Choosing alternative language models
 
