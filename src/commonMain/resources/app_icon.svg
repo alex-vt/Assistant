@@ -1,8 +1,8 @@
-<!-- original symmetric viewport 0 0 120 120 -->
-<svg width="512" height="512" viewBox="22 15 95 95" fill="#00E070" stroke-width="0" xmlns="http://www.w3.org/2000/svg">
-  <path d="M 25 45 L 25 90 L 35 100 L 45 110 L 45 75 L 35 65 L 35 37"/>
-  <path d="M 95 45 L 95 90 L 85 100 L 75 110 L 75 75 L 85 65 L 85 37"/>
-  <path d="M 52 81 L 57 82 L 63 82 L 68 81 L 68 90 L 63 92 L 57 92 L 52 90" fill-opacity="0.7"/>
+<!-- original non-clipping viewport 0 0 120 120 -->
+<svg width="512" height="512" viewBox="14 14 92 92" fill="#00E070" stroke-width="0" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 25 45 L 25 85 L 35 95 L 45 105 L 45 75 L 35 65 L 35 37"/>
+  <path d="M 95 45 L 95 85 L 85 95 L 75 105 L 75 75 L 85 65 L 85 37"/>
+  <path d="M 52 76 L 57 77 L 63 77 L 68 76 L 68 85 L 63 87 L 57 87 L 52 85" fill-opacity="0.7"/>
   <path d="M 40 48 L 45 57 L 55 56 L 55 51"/>
   <path d="M 80 48 L 75 57 L 65 56 L 65 51"/>
   <path d="M 25 32 L 40 32 L 60 36 L 80 32 L 95 32 L 117 15 L 47 15" fill-opacity="0.7"/>
