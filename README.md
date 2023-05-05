@@ -32,6 +32,7 @@ Prefer a more capable language model? Use `Shift` - see the reference below.
 | Action \ Button | Press                                                                 |
 |-----------------|-----------------------------------------------------------------------|
 | Action buttons  | Select & run action on text in input form with default language model |
+| Settings        | Show/hide settings on the bottom                                      |
 | Clear           | Delete text from input form                                           |
 | Mic             | Start/stop using microphone to dictate text (see section below)       |
 | Screenshot      | Pick text from screen (see section below)                             |

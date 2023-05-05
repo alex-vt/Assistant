@@ -9,6 +9,8 @@ import com.alexvt.assistant.usecases.CheckEstimatesAvailabilityUseCase
 import com.alexvt.assistant.usecases.CheckMicAvailabilityUseCase
 import com.alexvt.assistant.usecases.CheckTextFromScreenAvailabilityUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
+import com.alexvt.assistant.usecases.UpdateEstimatesEnabledSettingUseCase
+import com.alexvt.assistant.usecases.WatchSettingsUseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,6 +41,8 @@ class AssistantViewModelUseCases(
     val checkMicAvailabilityUseCase: CheckMicAvailabilityUseCase,
     val aiTranscribeFromMicUseCase: AiTranscribeFromMicUseCase,
     val aiTranscribeFromMicStopRecordingUseCase: AiTranscribeFromMicStopRecordingUseCase,
+    val watchSettingsUseCase: WatchSettingsUseCase,
+    val updateEstimatesEnabledSettingUseCase: UpdateEstimatesEnabledSettingUseCase,
 )
 
 class AssistantViewModel constructor(
@@ -61,6 +65,15 @@ class AssistantViewModel constructor(
                     isMicButtonVisible = useCases.checkMicAvailabilityUseCase.execute(),
                 )
             }.collect()
+        }
+        // settings
+        backgroundCoroutineScope.launch {
+            useCases.watchSettingsUseCase.execute().collect { settings ->
+                uiStateFlow.value = uiStateFlow.value.copy(
+                    isSettingsEstimatesChecked = settings.isCostEstimatingEnabled,
+                )
+                tryRunSelectedAction(isActualRun = false)
+            }
         }
     }
 
@@ -96,6 +109,8 @@ class AssistantViewModel constructor(
         val isShowingError: Boolean,
         val errorTitle: String,
         val errorDetails: String,
+        val isSettingsPanelShown: Boolean,
+        val isSettingsEstimatesChecked: Boolean,
     )
 
     private sealed class TextAction
@@ -149,6 +164,18 @@ class AssistantViewModel constructor(
             uiStateFlow.value = uiStateFlow.value.copy(
                 isActive = false
             )
+        }
+    }
+
+    fun onSettingsButton() {
+        uiStateFlow.value = uiStateFlow.value.copy(
+            isSettingsPanelShown = !uiStateFlow.value.isSettingsPanelShown,
+        )
+    }
+
+    fun onSettingsEstimatesEnabledStateChange(newValue: Boolean) {
+        backgroundCoroutineScope.launch {
+            useCases.updateEstimatesEnabledSettingUseCase.execute(newValue)
         }
     }
 
@@ -470,6 +497,8 @@ class AssistantViewModel constructor(
             isShowingError = false,
             errorTitle = "",
             errorDetails = "",
+            isSettingsPanelShown = false,
+            isSettingsEstimatesChecked = false,
         )
     }
 }

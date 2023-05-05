@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -23,6 +24,8 @@ import androidx.compose.material.LocalContentColor
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
+import androidx.compose.material.Switch
+import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -70,6 +73,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -287,13 +291,16 @@ fun AssistantView(
                                 .padding(horizontal = 6.dp)
                                 .align(Alignment.CenterHorizontally)
                         ) {
-                            /*
                             Icon(
                                 Icons.Default.Settings,
                                 tint = Color(0xFFFFFFFF).copy(alpha = 0.6f),
                                 contentDescription = "Settings",
                                 modifier = Modifier.padding(6.dp).size(20.dp)
+                                    .clickable {
+                                        viewModel.onSettingsButton()
+                                    }
                             )
+                            /*
                             Icon(
                                 Icons.Default.History,
                                 tint = Color(0xFFFFFFFF).copy(alpha = 0.6f),
@@ -363,6 +370,24 @@ fun AssistantView(
                                         viewModel.onInputEnter()
                                     }
                             )
+                        }
+                        if (uiState.isSettingsPanelShown) {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xE0303030))
+                                    .padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
+                            ) {
+                                SettingSwitch(
+                                    label = "Show cost estimates",
+                                    value = uiState.isSettingsEstimatesChecked,
+                                    textColor = Color(0xFFCCCCCC),
+                                    checkedThumbColor = Color(0xFF00DD66),
+                                    uncheckedThumbColor = Color(0xFF666666),
+                                ) { newValue ->
+                                    viewModel.onSettingsEstimatesEnabledStateChange(newValue)
+                                }
+                            }
                         }
                         if (uiState.isShowingError) {
                             Text(
@@ -447,7 +472,10 @@ fun AssistantView(
                     if (uiState.isPickingScreenshot) {
                         Box(
                             Modifier
-                                .offset(uiState.screenshotRectLeft.dp, uiState.screenshotRectTop.dp)
+                                .offset(
+                                    uiState.screenshotRectLeft.dp,
+                                    uiState.screenshotRectTop.dp
+                                )
                                 .width((uiState.screenshotRectRight - uiState.screenshotRectLeft).dp)
                                 .height((uiState.screenshotRectBottom - uiState.screenshotRectTop).dp)
                                 // standard non-dashed border instead would be
@@ -503,3 +531,36 @@ private fun Modifier.dashedBorder(
             )
         }
     }
+
+@Composable
+fun SettingSwitch(
+    label: String,
+    value: Boolean,
+    textColor: Color = MaterialTheme.colors.onPrimary,
+    uncheckedThumbColor: Color = MaterialTheme.colors.primary,
+    checkedThumbColor: Color = MaterialTheme.colors.secondary,
+    onNewValue: (Boolean) -> Unit,
+) {
+    var checkedState by remember { mutableStateOf(value) }
+    Row(horizontalArrangement = Arrangement.Start) {
+        Switch(
+            colors = SwitchDefaults.colors(
+                uncheckedThumbColor = uncheckedThumbColor,
+                checkedThumbColor = checkedThumbColor,
+            ),
+            checked = checkedState,
+            onCheckedChange = { newValue ->
+                checkedState = newValue
+                onNewValue(newValue)
+            }
+        )
+        Text(
+            text = label,
+            maxLines = 1,
+            fontSize = 14.sp,
+            color = textColor,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.CenterVertically).padding(start = 8.dp)
+        )
+    }
+}
