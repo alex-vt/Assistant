@@ -245,8 +245,8 @@ class AiTransformTextUseCase(
     }
 
     private fun List<ComputeRound>.toEstimateText(): String {
-        //if (size <= 1) return "" // considered less significant
-        return "$size rounds, \$${sumOf { it.usd }.withDecimalPlaces(2)}"
+        val pluralSuffix = if (size > 1) "s" else ""
+        return "$size round$pluralSuffix, \$${sumOf { it.usd }.withDecimalPlaces(2)}"
     }
 
     private fun Double.withDecimalPlaces(places: Int): String =

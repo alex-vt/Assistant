@@ -308,7 +308,11 @@ class AssistantViewModel constructor(
                         isActive = !isExternalSearchLaunching,
                         isBusyGettingResponse = false,
                         text = textAfterAction,
-                        estimateText = "~ ${runResult.estimatedCost.text}",
+                        estimateText = if (isActualRun) {
+                            ""
+                        } else {
+                            "~ ${runResult.estimatedCost.text}"
+                        },
                         actualCostText = if (isActualRun) {
                             "used: ${runResult.actualCost.text}"
                         } else {

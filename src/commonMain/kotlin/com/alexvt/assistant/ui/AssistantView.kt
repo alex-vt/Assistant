@@ -309,12 +309,14 @@ fun AssistantView(
                                     }
                             )
                             Spacer(modifier = Modifier.weight(1f))
-                            Text(
-                                text = uiState.estimateText,
-                                color = MaterialTheme.colors.primary.copy(alpha = 0.5f),
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-                            )
+                            if (uiState.estimateText.isNotBlank()) {
+                                Text(
+                                    text = uiState.estimateText,
+                                    color = MaterialTheme.colors.primary.copy(alpha = 0.5f),
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                )
+                            }
                             if (uiState.actualCostText.isNotBlank()) {
                                 Text(
                                     text = uiState.actualCostText,
