@@ -5,6 +5,7 @@ import com.alexvt.assistant.AppScope
 import com.alexvt.assistant.usecases.AiTranscribeFromMicStopRecordingUseCase
 import com.alexvt.assistant.usecases.AiTranscribeFromMicUseCase
 import com.alexvt.assistant.usecases.AiTransformTextUseCase
+import com.alexvt.assistant.usecases.CheckEstimatesAvailabilityUseCase
 import com.alexvt.assistant.usecases.CheckMicAvailabilityUseCase
 import com.alexvt.assistant.usecases.CheckTextFromScreenAvailabilityUseCase
 import com.alexvt.assistant.usecases.ExtractTextFromImageUseCase
@@ -31,6 +32,7 @@ import kotlin.math.min
 @AppScope
 @Inject
 class AssistantViewModelUseCases(
+    val checkEstimatesAvailabilityUseCase: CheckEstimatesAvailabilityUseCase,
     val aiTransformTextUseCase: AiTransformTextUseCase,
     val checkTextFromScreenAvailabilityUseCase: CheckTextFromScreenAvailabilityUseCase,
     val extractTextFromImageUseCase: ExtractTextFromImageUseCase,
@@ -262,8 +264,10 @@ class AssistantViewModel constructor(
             if (isBusyGettingTextFromMicRecording) return
         }
         with(getSelectedTextAction()) {
+            val isEstimateShown =
+                useCases.checkEstimatesAvailabilityUseCase.execute() && !isActualRun
             uiStateFlow.value = uiStateFlow.value.copy(
-                estimateText = if (isActualRun) "" else "computing cost ...",
+                estimateText = if (isEstimateShown) "computing cost ..." else "",
                 isBusyGettingResponse = isActualRun,
                 isShowingError = false,
             )
@@ -308,10 +312,10 @@ class AssistantViewModel constructor(
                         isActive = !isExternalSearchLaunching,
                         isBusyGettingResponse = false,
                         text = textAfterAction,
-                        estimateText = if (isActualRun) {
-                            ""
-                        } else {
+                        estimateText = if (isEstimateShown) {
                             "~ ${runResult.estimatedCost.text}"
+                        } else {
+                            ""
                         },
                         actualCostText = if (isActualRun) {
                             "used: ${runResult.actualCost.text}"

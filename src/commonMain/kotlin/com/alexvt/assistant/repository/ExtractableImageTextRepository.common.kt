@@ -5,7 +5,7 @@ import me.tatarka.inject.annotations.Inject
 
 @AppScope
 @Inject
-expect class ExtractableImageTextRepository {
+expect class ExtractableImageTextRepository() {
 
     fun isExtractionAvailable(): Boolean
 

@@ -7,6 +7,7 @@ import com.alexvt.assistant.repository.AiTextCompleteCurieRepository
 import com.alexvt.assistant.repository.AiTextCompleteDaVinciRepository
 import com.alexvt.assistant.repository.AiTextRepository
 import com.alexvt.assistant.repository.AiTextRepository.Response
+import com.alexvt.assistant.repository.SettingsRepository
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.takeWhile
@@ -21,6 +22,7 @@ class AiTransformTextUseCase(
     private val aiTextTurboRepository: AiTextChatGptTurboRepository,
     private val aiTextDaVinciRepository: AiTextCompleteDaVinciRepository,
     private val aiTextGpt4Repository: AiTextChatGpt4Repository,
+    private val settingsRepository: SettingsRepository,
 ) {
 
     data class TextTransformationResult(
@@ -74,19 +76,28 @@ class AiTransformTextUseCase(
             aiTextRepositories.first { it.getLanguageModel() == instructionLanguageModel }
         val shorteningRepository =
             aiTextRepositories.first { it.getLanguageModel() == shorteningLanguageModel }
-        val simulatedResponses = getResponsesForParts(
-            text, postfixInstruction, instructionRepository,
-            shorteningInstruction, shorteningRepository,
-            isDryRun = true,
-        )
-        val executionResponses = getResponsesForParts(
-            text, postfixInstruction, instructionRepository,
-            shorteningInstruction, shorteningRepository,
-            isDryRun,
-        )
+        val isSimulatedRunPerformed = settingsRepository.readSettings().isCostEstimatingEnabled
+        val simulatedResponses = if (isSimulatedRunPerformed) {
+            getResponsesForParts(
+                text, postfixInstruction, instructionRepository,
+                shorteningInstruction, shorteningRepository,
+                isDryRun = true,
+            )
+        } else {
+            emptyList()
+        }
+        val executionResponses = if (isDryRun) {
+            simulatedResponses
+        } else {
+            getResponsesForParts(
+                text, postfixInstruction, instructionRepository,
+                shorteningInstruction, shorteningRepository,
+                isDryRun = false,
+            )
+        }
         return TextTransformationResult(
             isDryRun,
-            resultText = executionResponses.last().text, // the previous ones have partial results
+            resultText = executionResponses.lastOrNull()?.text ?: "", // last result is final
             estimatedCost = simulatedResponses.totalCost(),
             actualCost = if (isDryRun) zeroCost else executionResponses.totalCost(),
             status = executionResponses.getStatus(),
@@ -245,7 +256,7 @@ class AiTransformTextUseCase(
     }
 
     private fun List<ComputeRound>.toEstimateText(): String {
-        val pluralSuffix = if (size > 1) "s" else ""
+        val pluralSuffix = if (size == 1) "" else "s"
         return "$size round$pluralSuffix, \$${sumOf { it.usd }.withDecimalPlaces(2)}"
     }
 
