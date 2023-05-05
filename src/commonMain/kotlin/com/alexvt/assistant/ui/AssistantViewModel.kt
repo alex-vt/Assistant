@@ -295,6 +295,7 @@ class AssistantViewModel constructor(
                 useCases.checkEstimatesAvailabilityUseCase.execute() && !isActualRun
             uiStateFlow.value = uiStateFlow.value.copy(
                 estimateText = if (isEstimateShown) "computing cost ..." else "",
+                actualCostText = "",
                 isBusyGettingResponse = isActualRun,
                 isShowingError = false,
             )
