@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.FileInputStream
-import java.util.*
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -119,29 +119,38 @@ android {
         targetSdk = 33
     }
 
-    val signingProperties = Properties()
-    val signingPropertiesFile = file("signing.properties")
-    val signingPropertiesExist = signingPropertiesFile.exists()
-    if (signingPropertiesExist) signingProperties.load(FileInputStream(signingPropertiesFile))
+    val credentialsProperties = Properties()
+    val credentialsPropertiesFile = file("credentials.properties")
+    val isCredentialsExisting = credentialsPropertiesFile.exists()
+    if (isCredentialsExisting) {
+        credentialsProperties.load(FileInputStream(credentialsPropertiesFile))
+    }
 
     signingConfigs {
         create("release") {
             storeFile =
-                if (signingPropertiesExist) file(signingProperties["signingStoreLocation"] as String) else null
-            storePassword = signingProperties["signingStorePassword"] as String
-            keyAlias = signingProperties["signingKeyAlias"] as String
-            keyPassword = signingProperties["signingKeyPassword"] as String
+                if (isCredentialsExisting) {
+                    file(credentialsProperties["signingStoreLocation"] as String)
+                } else {
+                    null
+                }
+            storePassword = credentialsProperties["signingStorePassword"] as String
+            keyAlias = credentialsProperties["signingKeyAlias"] as String
+            keyPassword = credentialsProperties["signingKeyPassword"] as String
         }
     }
 
     buildTypes {
+        val openAiApiKey = credentialsProperties["openAiApiKey"] as String
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
             isDebuggable = false
+            buildConfigField("String", "OPENAI_API_KEY", "\"$openAiApiKey\"")
         }
         getByName("debug") {
             signingConfig = signingConfigs.getByName("debug")
             isDebuggable = true
+            buildConfigField("String", "OPENAI_API_KEY", "\"$openAiApiKey\"")
         }
     }
 
