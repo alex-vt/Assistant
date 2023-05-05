@@ -31,7 +31,7 @@ Prefer a more capable language model? Use `Shift` - see the reference below.
 
 | Action \ Button | Press                                              |
 |-----------------|----------------------------------------------------|
-| Action buttons  | Select action to do with text in input form        |
+| Action buttons  | Select & run action on text in input form          |
 | Clear           | Delete text from input form                        |
 | Mic             | Use microphone to dictate text (see section below) |
 | Screenshot      | Pick text from screen (see section below)          |
