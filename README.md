@@ -29,12 +29,13 @@ Prefer a more capable language model? Use `Shift` - see the reference below.
 
 ### Buttons
 
-| Action \ Button | Press                                              |
-|-----------------|----------------------------------------------------|
-| Action buttons  | Select & run action on text in input form          |
-| Clear           | Delete text from input form                        |
-| Mic             | Use microphone to dictate text (see section below) |
-| Screenshot      | Pick text from screen (see section below)          |
+| Action \ Button | Press                                                                 |
+|-----------------|-----------------------------------------------------------------------|
+| Action buttons  | Select & run action on text in input form with default language model |
+| Clear           | Delete text from input form                                           |
+| Mic             | Start/stop using microphone to dictate text (see section below)       |
+| Screenshot      | Pick text from screen (see section below)                             |
+| Send            | Run action on text in input form with default language model          |
 
 For usage with keyboard shortcuts, see Usage summary with modifier keys below.
 

@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.RestorePage
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -351,6 +352,15 @@ fun AssistantView(
                                         }
                                 )
                             }
+                            Icon(
+                                Icons.Default.Send,
+                                tint = Color(0xFF00FF88).copy(alpha = 0.6f),
+                                contentDescription = "Run selected action",
+                                modifier = Modifier.padding(6.dp).size(20.dp)
+                                    .clickable {
+                                        viewModel.onInputEnter()
+                                    }
+                            )
                         }
                         if (uiState.isShowingError) {
                             Text(
