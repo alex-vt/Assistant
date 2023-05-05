@@ -4,14 +4,19 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import com.alexvt.assistant.App.Companion.dependencies
 import com.alexvt.assistant.platform.androidContext
@@ -31,10 +36,17 @@ class MainActivity : PreComposeActivity() {
             fixFocusStuckOnSoftKeyboardHide(
                 findViewById(android.R.id.content), LocalFocusManager.current
             )
-            Box(
-                Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomCenter,
-            ) {
+            val density = LocalDensity.current.density
+            Column(Modifier.fillMaxSize()) {
+                Spacer(
+                    Modifier.fillMaxWidth().weight(1f)
+                        .background( // backdrop over non-clickable background on Android
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0x00000000), Color(0x70000000)),
+                                endY = 200f * density,
+                            )
+                        )
+                )
                 MainView(dependencies, getGlobalBounds(), Dispatchers.Default)
             }
         }
