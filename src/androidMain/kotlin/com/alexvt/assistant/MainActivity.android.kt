@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,13 +41,16 @@ class MainActivity : PreComposeActivity() {
             val density = LocalDensity.current.density
             Column(Modifier.fillMaxSize()) {
                 Spacer(
+                    // shade fill over non-clickable (Android specific) other apps UI
                     Modifier.fillMaxWidth().weight(1f)
-                        .background( // backdrop over non-clickable background on Android
+                        .background(
                             Brush.verticalGradient(
                                 colors = listOf(Color(0x00000000), Color(0x70000000)),
                                 endY = 200f * density,
                             )
-                        )
+                        ).clickable {
+                            finish()
+                        }
                 )
                 MainView(dependencies, getGlobalBounds(), Dispatchers.Default)
             }
