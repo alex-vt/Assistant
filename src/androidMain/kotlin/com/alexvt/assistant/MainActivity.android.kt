@@ -18,6 +18,7 @@ import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import com.alexvt.assistant.App.Companion.dependencies
@@ -52,7 +53,14 @@ class MainActivity : PreComposeActivity() {
                             finish()
                         }
                 )
-                MainView(dependencies, getGlobalBounds(), Dispatchers.Default)
+                Box(Modifier.onGloballyPositioned { layoutCoordinates ->
+                    // Assistant UI can collapse itself "out of activity"
+                    if (layoutCoordinates.size.height == 0) {
+                        finish()
+                    }
+                }) {
+                    MainView(dependencies, getGlobalBounds(), Dispatchers.Default)
+                }
             }
         }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
