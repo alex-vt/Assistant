@@ -349,12 +349,12 @@ class AssistantViewModel constructor(
                         isBusyGettingResponse = false,
                         text = textAfterAction,
                         estimateText = if (isEstimateShown) {
-                            "~ ${runResult.estimatedCost.text}"
+                            "~${runResult.estimatedCost.text}"
                         } else {
                             ""
                         },
                         actualCostText = if (isActualRun) {
-                            "used: ${runResult.actualCost.text}"
+                            runResult.actualCost.text
                         } else {
                             ""
                         },

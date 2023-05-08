@@ -257,7 +257,15 @@ class AiTransformTextUseCase(
 
     private fun List<ComputeRound>.toEstimateText(): String {
         val pluralSuffix = if (size == 1) "" else "s"
-        return "$size round$pluralSuffix, \$${sumOf { it.usd }.withDecimalPlaces(2)}"
+        val costText = sumOf { it.usd }.withDecimalPlaces(2).run {
+            // lowest shown value <$0.001
+            if (contains("000")) {
+                "< $${0.001.withDecimalPlaces(2)}"
+            } else {
+                "$$this"
+            }
+        }
+        return "$size round$pluralSuffix, $costText"
     }
 
     private fun Double.withDecimalPlaces(places: Int): String =
