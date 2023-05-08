@@ -17,9 +17,16 @@ actual class ExtractableImageTextRepository {
     actual fun isExtractionAvailable(): Boolean =
         File(tesseractDataPath).exists()
 
-    actual fun extractFromScreenArea(top: Int, bottom: Int, left: Int, right: Int): String {
+    actual suspend fun extractFromScreenArea(
+        top: Int,
+        bottom: Int,
+        left: Int,
+        right: Int,
+        onImageCaptured: () -> Unit,
+    ): String {
         val screenBufferedImage =
             Robot().createScreenCapture(Rectangle(Toolkit.getDefaultToolkit().screenSize))
+        onImageCaptured()
         return Tesseract().apply {
             // system installed ocr-tesseract 5 package data used.
             // See https://stackoverflow.com/questions/36166164/tesseract-for-java-setting-tessdata-prefix-for-executable-jar

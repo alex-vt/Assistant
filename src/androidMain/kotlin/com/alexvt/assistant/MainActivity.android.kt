@@ -6,11 +6,18 @@ import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -19,12 +26,14 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.dp
 import com.alexvt.assistant.App.Companion.dependencies
-import com.alexvt.assistant.platform.androidContext
 import com.alexvt.assistant.ui.MainView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import moe.tlaster.precompose.lifecycle.PreComposeActivity
 import moe.tlaster.precompose.lifecycle.setContent
 
@@ -33,33 +42,62 @@ class MainActivity : PreComposeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        androidContext = this
 
         setContent {
             fixFocusStuckOnSoftKeyboardHide(
                 findViewById(android.R.id.content), LocalFocusManager.current
             )
-            val density = LocalDensity.current.density
             Column(Modifier.fillMaxSize()) {
                 Spacer(
                     // shade fill over non-clickable (Android specific) other apps UI
                     Modifier.fillMaxWidth().weight(1f)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color(0x00000000), Color(0x70000000)),
-                                endY = 200f * density,
-                            )
-                        ).clickable {
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
                             finish()
-                        }
+                        }.background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0x00000000), Color(0x50000000)),
+                            )
+                        )
                 )
-                Box(Modifier.onGloballyPositioned { layoutCoordinates ->
-                    // Assistant UI can collapse itself "out of activity"
-                    if (layoutCoordinates.size.height == 0) {
-                        finish()
+                val coroutineScope = rememberCoroutineScope()
+                var finishWithDelayJobOrNull by remember { mutableStateOf<Job?>(null) }
+                Row(
+                    Modifier.fillMaxWidth().onGloballyPositioned { layoutCoordinates ->
+                        // Assistant UI can collapse itself "out of activity".
+                        // UI reshape-related height instantaneous fluctuations don't count.
+                        when (layoutCoordinates.size.height) {
+                            0 -> {
+                                finishWithDelayJobOrNull = coroutineScope.launch {
+                                    delay(100)
+                                    finish()
+                                }
+                            }
+
+                            else -> {
+                                finishWithDelayJobOrNull?.cancel()
+                            }
+                        }
                     }
-                }) {
+                ) {
+                    // Side spacers appear on wide screen
+                    Spacer(
+                        Modifier.weight(1f).height(100.dp).background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0x50000000), Color(0x00000000)),
+                            )
+                        )
+                    )
                     MainView(dependencies, getGlobalBounds(), Dispatchers.Default)
+                    Spacer(
+                        Modifier.weight(1f).height(100.dp).background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0x50000000), Color(0x00000000)),
+                            )
+                        )
+                    )
                 }
             }
         }

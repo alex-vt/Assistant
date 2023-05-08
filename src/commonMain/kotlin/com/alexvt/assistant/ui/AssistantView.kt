@@ -83,6 +83,7 @@ import com.alexvt.assistant.uicustomizations.BasicTextFieldWithBestEffortScrollb
 import com.alexvt.assistant.uitheme.Fonts
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import moe.tlaster.precompose.ui.viewModel
 
@@ -124,6 +125,7 @@ fun AssistantView(
                                 text = event.text,
                                 selection = TextRange(event.text.length),
                             )
+                        delay(100) // see https://issuetracker.google.com/issues/204502668
                         focusRequester.requestFocus()
                     }
                 }
@@ -469,7 +471,7 @@ fun AssistantView(
                         .absoluteOffset(0.dp, 0.dp)
                         .size(globalBounds.width.dp, globalBounds.height.dp)
                 ) {
-                    if (uiState.isPickingScreenshot) {
+                    if (uiState.isShowingScreenshotSelection) {
                         Box(
                             Modifier
                                 .offset(

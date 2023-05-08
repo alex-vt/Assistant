@@ -9,6 +9,12 @@ expect class ExtractableImageTextRepository() {
 
     fun isExtractionAvailable(): Boolean
 
-    fun extractFromScreenArea(top: Int, bottom: Int, left: Int, right: Int): String
+    suspend fun extractFromScreenArea(
+        top: Int,
+        bottom: Int,
+        left: Int,
+        right: Int,
+        onImageCaptured: () -> Unit,
+    ): String
 
 }

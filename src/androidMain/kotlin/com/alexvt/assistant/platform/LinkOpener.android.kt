@@ -1,9 +1,9 @@
 package com.alexvt.assistant.platform
 
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.alexvt.assistant.App.Companion.androidAppContext
 
 
 actual fun openLinkInChrome(link: String) {
@@ -12,12 +12,10 @@ actual fun openLinkInChrome(link: String) {
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     intent.setPackage("com.android.chrome") // see https://stackoverflow.com/questions/12013416
     try {
-        androidContext.startActivity(intent)
+        androidAppContext.startActivity(intent)
     } catch (exception: ActivityNotFoundException) {
         // Chrome browser presumably not installed so allow user to choose instead
         intent.setPackage(null)
-        androidContext.startActivity(intent)
+        androidAppContext.startActivity(intent)
     }
 }
-
-lateinit var androidContext: Context // todo don't expose

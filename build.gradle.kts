@@ -78,6 +78,8 @@ kotlin {
                 api("androidx.appcompat:appcompat:1.6.1")
                 api("androidx.core:core-ktx:1.10.0")
                 implementation("androidx.activity:activity-compose:1.7.1")
+
+                implementation("com.google.android.gms:play-services-mlkit-text-recognition:16.0.0")
             }
         }
 

@@ -96,6 +96,7 @@ class AssistantViewModel constructor(
         val isScreenshotButtonVisible: Boolean,
         val isPreviewingScreenshot: Boolean,
         val isPickingScreenshot: Boolean,
+        val isShowingScreenshotSelection: Boolean,
         val screenshotStartX: Int,
         val screenshotStartY: Int,
         val screenshotRectTop: Int,
@@ -158,7 +159,8 @@ class AssistantViewModel constructor(
     fun onEscape() {
         if (uiStateFlow.value.isPickingScreenshot) {
             uiStateFlow.value = uiStateFlow.value.copy(
-                isPickingScreenshot = false
+                isPickingScreenshot = false,
+                isShowingScreenshotSelection = false,
             )
         } else {
             uiStateFlow.value = uiStateFlow.value.copy(
@@ -224,6 +226,7 @@ class AssistantViewModel constructor(
         uiStateFlow.value = uiStateFlow.value.copy(
             isPreviewingScreenshot = false,
             isPickingScreenshot = true,
+            isShowingScreenshotSelection = true,
             screenshotStartX = x,
             screenshotStartY = y,
             screenshotRectTop = y,
@@ -246,12 +249,7 @@ class AssistantViewModel constructor(
     fun onFreeAreaPointerRelease(x: Int, y: Int, windowOffset: Offset) {
         if (!uiStateFlow.value.isPickingScreenshot) return
         uiStateFlow.value = uiStateFlow.value.copy(
-            isPickingScreenshot = false,
-            isBusyGettingTextFromScreenshot = true,
-            screenshotRectTop = min(uiStateFlow.value.screenshotStartY, y),
-            screenshotRectBottom = max(uiStateFlow.value.screenshotStartY, y),
-            screenshotRectLeft = min(uiStateFlow.value.screenshotStartX, x),
-            screenshotRectRight = max(uiStateFlow.value.screenshotStartX, x),
+            isShowingScreenshotSelection = false, // edges won't appear in the screenshot
         )
         backgroundCoroutineScope.launch {
             val textBeforeAction = uiStateFlow.value.text
@@ -262,7 +260,17 @@ class AssistantViewModel constructor(
                     uiStateFlow.value.screenshotRectBottom + windowOffset.y.toInt(),
                     uiStateFlow.value.screenshotRectLeft + windowOffset.x.toInt(),
                     uiStateFlow.value.screenshotRectRight + windowOffset.x.toInt(),
-                )
+                ) {
+                    // image captured, restoring regular UI
+                    uiStateFlow.value = uiStateFlow.value.copy(
+                        isPickingScreenshot = false,
+                        isBusyGettingTextFromScreenshot = true,
+                        screenshotRectTop = min(uiStateFlow.value.screenshotStartY, y),
+                        screenshotRectBottom = max(uiStateFlow.value.screenshotStartY, y),
+                        screenshotRectLeft = min(uiStateFlow.value.screenshotStartX, x),
+                        screenshotRectRight = max(uiStateFlow.value.screenshotStartX, x),
+                    )
+                }
             )
             mainThreadCoroutineScope.launch {
                 uiEventFlow.emit(TextGenerated(textAfterAction))
@@ -485,6 +493,7 @@ class AssistantViewModel constructor(
             isScreenshotButtonVisible = false,
             isPreviewingScreenshot = false,
             isPickingScreenshot = false,
+            isShowingScreenshotSelection = false,
             screenshotStartX = 0,
             screenshotStartY = 0,
             screenshotRectTop = 0,

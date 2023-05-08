@@ -11,10 +11,16 @@ class ExtractTextFromImageUseCase(
     private val repository: ExtractableImageTextRepository,
 ) {
 
-    fun execute(top: Int, bottom: Int, left: Int, right: Int): String {
+    suspend fun execute(
+        top: Int,
+        bottom: Int,
+        left: Int,
+        right: Int,
+        onImageCaptured: () -> Unit,
+    ): String {
         val isImageBlank = abs(top - bottom) <= 1 || abs(left - right) <= 1
         if (isImageBlank) return ""
-        return repository.extractFromScreenArea(top, bottom, left, right)
+        return repository.extractFromScreenArea(top, bottom, left, right, onImageCaptured)
     }
 
 }
