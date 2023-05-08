@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,11 +30,13 @@ import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.OndemandVideo
 import androidx.compose.material.icons.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material.icons.filled.RestorePage
 import androidx.compose.material.icons.filled.Science
@@ -40,6 +44,7 @@ import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SlowMotionVideo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -67,8 +72,10 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
@@ -368,10 +375,77 @@ fun AssistantView(
                                 contentDescription = "Run selected action",
                                 modifier = Modifier.padding(vertical = 6.dp, horizontal = 8.dp)
                                     .size(20.dp)
-                                    .clickable {
-                                        viewModel.onInputEnter()
+                                    // long or right button press opens/closes selected model panel
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                viewModel.onModelSelectionPanelToggle()
+                                            },
+                                            onTap = {
+                                                viewModel.onInputEnter()
+                                            }
+                                        )
+                                    }
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            val event = awaitPointerEvent()
+                                            if (event.type == PointerEventType.Press) {
+                                                if (event.buttons.isSecondaryPressed) {
+                                                    viewModel.onModelSelectionPanelToggle()
+                                                }
+                                            }
+                                        }
                                     }
                             )
+                        }
+                        if (uiState.isModelChoicePanelShown) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xE0303030))
+                                    .height(38.dp)
+                                    .padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "Capability",
+                                    maxLines = 1,
+                                    fontSize = 14.sp,
+                                    color = Color(0xFFCCCCCC),
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                ActionButtons(
+                                    actionButtons = listOf(
+                                        ActionButton(
+                                            text = "Low",
+                                            icon = Icons.Default.SlowMotionVideo,
+                                            iconTint = 0x44AA77,
+                                            isAlwaysShown = true,
+                                        ),
+                                        ActionButton(
+                                            text = "Med",
+                                            icon = Icons.Default.Psychology,
+                                            iconTint = 0xAAAAAA,
+                                            isAlwaysShown = true,
+                                        ),
+                                        ActionButton(
+                                            text = "High",
+                                            icon = Icons.Default.Bolt,
+                                            iconTint = 0xFF7700,
+                                            isAlwaysShown = true,
+                                        ),
+                                    ),
+                                    selectedIndex = uiState.instructionLanguageModelSelectionIndex,
+                                ) { index ->
+                                    when (index) {
+                                        2 -> viewModel.onInstructionModelSelectMax()
+                                        1 -> viewModel.onInstructionModelSelectMedium()
+                                        0 -> viewModel.onInstructionModelSelectMin()
+                                    }
+                                }
+                            }
                         }
                         if (uiState.isSettingsPanelShown) {
                             Column(

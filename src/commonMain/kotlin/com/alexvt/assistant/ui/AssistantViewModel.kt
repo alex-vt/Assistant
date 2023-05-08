@@ -86,6 +86,7 @@ class AssistantViewModel constructor(
     data class UiState(
         val isActive: Boolean,
         val instructionLanguageModel: String,
+        val instructionLanguageModelSelectionIndex: Int,
         val actionButtonNames: List<String>,
         val actionIconTints: List<Int>,
         val actionButtonSelectedIndex: Int,
@@ -110,6 +111,7 @@ class AssistantViewModel constructor(
         val isShowingError: Boolean,
         val errorTitle: String,
         val errorDetails: String,
+        val isModelChoicePanelShown: Boolean,
         val isSettingsPanelShown: Boolean,
         val isSettingsEstimatesChecked: Boolean,
     )
@@ -172,6 +174,14 @@ class AssistantViewModel constructor(
     fun onSettingsButton() {
         uiStateFlow.value = uiStateFlow.value.copy(
             isSettingsPanelShown = !uiStateFlow.value.isSettingsPanelShown,
+            isModelChoicePanelShown = false,
+        )
+    }
+
+    fun onModelSelectionPanelToggle() {
+        uiStateFlow.value = uiStateFlow.value.copy(
+            isModelChoicePanelShown = !uiStateFlow.value.isModelChoicePanelShown,
+            isSettingsPanelShown = false,
         )
     }
 
@@ -368,6 +378,9 @@ class AssistantViewModel constructor(
     }
 
     fun onInputEnter() {
+        uiStateFlow.value = uiStateFlow.value.copy(
+            isModelChoicePanelShown = false,
+        )
         tryRunSelectedAction(isActualRun = true)
     }
 
@@ -399,6 +412,7 @@ class AssistantViewModel constructor(
     fun onInstructionModelSelectMin() {
         uiStateFlow.value = uiStateFlow.value.copy(
             instructionLanguageModel = "Turbo",
+            instructionLanguageModelSelectionIndex = 0, // todo list language models in UiState
         )
         tryRunSelectedAction(isActualRun = false)
     }
@@ -406,6 +420,7 @@ class AssistantViewModel constructor(
     fun onInstructionModelSelectMedium() {
         uiStateFlow.value = uiStateFlow.value.copy(
             instructionLanguageModel = "DaVinci",
+            instructionLanguageModelSelectionIndex = 1,
         )
         tryRunSelectedAction(isActualRun = false)
     }
@@ -413,6 +428,7 @@ class AssistantViewModel constructor(
     fun onInstructionModelSelectMax() {
         uiStateFlow.value = uiStateFlow.value.copy(
             instructionLanguageModel = "GPT4",
+            instructionLanguageModelSelectionIndex = 2,
         )
         tryRunSelectedAction(isActualRun = false)
     }
@@ -420,6 +436,7 @@ class AssistantViewModel constructor(
     fun onInstructionModelUnselect() {
         uiStateFlow.value = uiStateFlow.value.copy(
             instructionLanguageModel = "Turbo", // for by-default cost estimates
+            instructionLanguageModelSelectionIndex = 0,
         )
         tryRunSelectedAction(isActualRun = false)
     }
@@ -483,6 +500,7 @@ class AssistantViewModel constructor(
         private val initialUiState = UiState(
             isActive = true,
             instructionLanguageModel = "Turbo",
+            instructionLanguageModelSelectionIndex = 0,
             actionButtonNames = actionButtonModels.map { it.title },
             actionIconTints = actionButtonModels.map { it.iconTint },
             actionButtonSelectedIndex = defaultSelectedActionIndex,
@@ -507,6 +525,7 @@ class AssistantViewModel constructor(
             isShowingError = false,
             errorTitle = "",
             errorDetails = "",
+            isModelChoicePanelShown = false,
             isSettingsPanelShown = false,
             isSettingsEstimatesChecked = false,
         )
