@@ -15,6 +15,7 @@ class AiTranscribeFromMicUseCase(
 
     suspend fun execute(): Response {
         val speechAudio = soundRecordingRepository.getRecordingFromMic()
+        if (speechAudio.isEmpty()) return Response(text = "")
         return aiSpeechTranscriptionRepository.getTranscription(speechAudio)
     }
 
