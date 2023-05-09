@@ -11,7 +11,7 @@ For desktop & Android.
 * **Choose language models** easily & **preview compute costs** every time.
 * **Opens by shortcut** key press - use in any context, minimal distraction.
 
-![Example](docs/example1.png)
+![Example](docs/example.png)
 
 #### Usage:
 
@@ -23,11 +23,15 @@ For desktop & Android.
 On ***Android***, the app can be selected as device assistant: 
 ***Home*** button ***long press*** will open it.
 
-Window height adjusts when text is short.
+Assistant in action on Android:
 
-Estimated cost of action updates below continuously. Actual cost shows after action is performed.
+https://github.com/alex-vt/Assistant/assets/6236091/1535f832-ed1c-41e2-a561-976c0a8b5aba
 
 Prefer a more capable language model? Long press Send, or use `Shift` - see the reference below.
+
+Actual cost of performed action shows in green. Cost estimate for the text in input form 
+and selected language model shows continuously in gray, or can be turned off in settings.
+
 
 ## Usage reference
 
@@ -283,6 +287,10 @@ hide its own window and surround the whole available screen area with a border.
 
 >`* See Optional section below. If the optional software is unavailable, the screenshot button 
 will be hidden - reopen Assistant window to recheck availability.`
+
+### Settings
+
+* Cost estimates can be turned off.
 
 
 ## Running the app
