@@ -494,10 +494,9 @@ fun AssistantView(
                                 .matchParentSize()
                         ) {
                             Text(
-                                text = "Getting result...",
+                                text = "Performing selected action...",
                                 color = MaterialTheme.colors.primary,
                                 modifier = Modifier.padding(10.dp)
-                                    .width(400.dp)
                                     .height(IntrinsicSize.Min)
                                     .align(Alignment.BottomCenter)
                             )
