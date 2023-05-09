@@ -337,7 +337,7 @@ class AssistantViewModel constructor(
                         )
 
                         is SearchOnlineTextAction -> prefixUrl + withContext(Dispatchers.IO) {
-                            URLEncoder.encode(runResult.resultText, "utf-8")
+                            URLEncoder.encode(runResult.resultText.trim().trim('"'), "utf-8")
                         }
                     }
                 } else {
